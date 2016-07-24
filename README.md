@@ -1,2 +1,4 @@
 # sample-neural-network
-codes written in `'scala'` from http://neuralnetworksanddeeplearning.com/
+Codes written in `'scala'` from http://neuralnetworksanddeeplearning.com/
+
+The original python codes are on https://github.com/mnielsen/neural-networks-and-deep-learning
