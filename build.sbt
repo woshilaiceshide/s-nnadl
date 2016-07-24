@@ -44,6 +44,10 @@ libraryDependencies += "com.jolbox" % "bonecp" % "0.8.0.RELEASE"
 
 //libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
 
+//libraryDependencies += "net.razorvine" % "pyrolite" % "4.12"
+//libraryDependencies += "org.nd4j" % "nd4j-api" % "0.4.0"
+//libraryDependencies += "org.nd4j" % "nd4j-native" % "0.4.0"
+
 retrieveManaged := false
 
 enablePlugins(JavaAppPackaging)
