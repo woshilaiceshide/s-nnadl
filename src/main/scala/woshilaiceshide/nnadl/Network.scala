@@ -62,6 +62,9 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     iterate(0, Matrix.vertical(input))
   }
 
+  //TODO
+  def SGD() = throw new scala.NotImplementedError
+
 }
 
 
