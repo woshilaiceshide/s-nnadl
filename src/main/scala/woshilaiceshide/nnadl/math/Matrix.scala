@@ -10,13 +10,25 @@ object Matrix {
     new Matrix(r_count, c_count).map_directly { (i, j, v) => generator(i, j) }
   }
 
-  def random(rnd: scala.util.Random, r: Int, c: Int) = {
-    apply(r, c, (i, j) => rnd.nextGaussian())
-  }
+  def random(rnd: scala.util.Random, r: Int, c: Int) = apply(r, c, (i, j) => rnd.nextGaussian())
 
   def vertical(a: Array[Double]) = apply(a.length, 1, (i, j) => a(i))
+  def vertical_unsafely(a: Array[Double]) = new Matrix(a.length, 1, a)
 
   def horizontal(a: Array[Double]) = apply(1, a.length, (i, j) => a(j))
+  def horizontal_unsafely(a: Array[Double]) = new Matrix(1, a.length, a)
+
+  def wrap(a: Array[Array[Double]]) = {
+    val r_count = a.length
+    val c_count = if (0 == r_count) 0 else a(0).length
+    apply(r_count, c_count, (i, j) => a(i)(j))
+  }
+
+  def wrap(a: Array[Array[Int]]) = {
+    val r_count = a.length
+    val c_count = if (0 == r_count) 0 else a(0).length
+    apply(r_count, c_count, (i, j) => a(i)(j))
+  }
 
 }
 
@@ -56,7 +68,7 @@ class Line(getter: Int => Double, val length: Int, val is_row: Boolean) {
 
 }
 
-class Matrix(r_count: Int, c_count: Int) {
+class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
 
   override def toString() = format("")
 
@@ -75,7 +87,15 @@ class Matrix(r_count: Int, c_count: Int) {
     }.map { margin + _ }.mkString(System.lineSeparator())
   }
 
-  private val array = new Array[Double](r_count * c_count)
+  def this(r_count: Int, c_count: Int) = this(r_count, c_count, new Array[Double](r_count * c_count))
+
+  /**
+   * the returned matrix shares the underlying array with me.
+   */
+  def reshape(r1: Int, c1: Int) = {
+    assert(r1 * c1 == array.length)
+    new Matrix(r1, c1, array)
+  }
 
   def dim = (r_count, c_count)
 
