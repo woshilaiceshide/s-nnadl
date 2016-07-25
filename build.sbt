@@ -32,7 +32,7 @@ scalaVersion := "2.11.8"
 
 scalacOptions := Seq("-unchecked", "-deprecation","-optimise", "-encoding", "utf8", "-Yno-adapted-args")
 
-javacOptions ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-source", "1.7", "-target", "1.7", "-g:vars")
+javacOptions ++= Seq("-Xlint:deprecation", "-Xlint:unchecked", "-source", "1.8", "-target", "1.8", "-g:vars")
 
 libraryDependencies += "com.typesafe.play" %% "anorm" % "2.5.1"
 
@@ -44,6 +44,7 @@ libraryDependencies += "com.jolbox" % "bonecp" % "0.8.0.RELEASE"
 
 //libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.7"
 
+//libraryDependencies += "org.deeplearning4j" % "deeplearning4j-core" % "0.4.0"
 //libraryDependencies += "net.razorvine" % "pyrolite" % "4.12"
 //libraryDependencies += "org.nd4j" % "nd4j-api" % "0.4.0"
 //libraryDependencies += "org.nd4j" % "nd4j-native" % "0.4.0"
