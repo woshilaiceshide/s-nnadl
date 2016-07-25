@@ -66,7 +66,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     training_data: Array[MnistLoader.MnistRecord1],
     epochs: Int,
     mini_batch_size: Int,
-    eta: Int,
+    eta: Double,
     test_data: Option[Array[MnistLoader.MnistRecord2]] = None) = {
     val n_test = test_data.map { _.length }.getOrElse(0)
     val n = training_data.length
@@ -90,7 +90,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
   }
 
   //TODO
-  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Int) = {
+  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Double) = {
 
   }
 

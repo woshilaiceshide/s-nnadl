@@ -6,8 +6,14 @@ import woshilaiceshide.nnadl.math._
 object Runner extends App {
 
   import Network._
+  import MnistLoader._
 
-  val network = new Network(Array(784, 30, 10))
+  def test() = {
+    val network = new Network(Array(784, 30, 10))
+    val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper()
+    network.SGD(training_data, 30, 10, 3.0, test_data = Some(test_data))
+  }
+
   //println(network)
 
   val a = Matrix.vertical(Array(1.0d, 2.0d, 3.0d))
