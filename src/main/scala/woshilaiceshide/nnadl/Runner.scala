@@ -18,4 +18,6 @@ object Runner extends App {
   println(MnistLoader.vectorized_result(3))
   println(MnistLoader.default_folder)
 
+  val rnd: scala.util.Random = new scala.util.Random()
+
 }

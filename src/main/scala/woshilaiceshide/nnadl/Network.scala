@@ -62,8 +62,42 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     iterate(0, Matrix.vertical(input))
   }
 
+  def SGD(
+    training_data: Array[MnistLoader.MnistRecord1],
+    epochs: Int,
+    mini_batch_size: Int,
+    eta: Int,
+    test_data: Option[Array[MnistLoader.MnistRecord2]] = None) = {
+    val n_test = test_data.map { _.length }.getOrElse(0)
+    val n = training_data.length
+    epochs.range.map { j =>
+      val shuffled = rnd.shuffle(training_data.toSeq).toArray
+      val mini_batches = 0.until(n, mini_batch_size).map { k =>
+        training_data.slice(k, k + mini_batch_size)
+      }
+
+      mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta) }
+
+      test_data match {
+        case Some(test_data) =>
+          println(s"""Epoch ${j}: ${evaluate(test_data)} / ${n_test}""")
+        case None =>
+          println(s"""Epoch ${j} complete""")
+      }
+
+    }
+
+  }
+
   //TODO
-  def SGD() = throw new scala.NotImplementedError
+  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Int) = {
+
+  }
+
+  //TODO 
+  def evaluate(test_data: Array[MnistLoader.MnistRecord2]) = {
+
+  }
 
 }
 
