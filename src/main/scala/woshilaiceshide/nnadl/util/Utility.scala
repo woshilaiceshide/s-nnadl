@@ -35,4 +35,27 @@ object Utility extends Utility {
     }
   }
 
+  /**
+   * println(Utility.group_array(Array('a', 'b', 'c', 'd', "e"), 30).toList.map { x => "[" + x.mkString(", ") + "]" })
+   * println(Utility.group_array(Array('a', 'b', 'c', 'd', "e"), 2).toList.map { x => "[" + x.mkString(", ") + "]" })
+   * println(Utility.group_array(Array('a', 'b', 'c', 'd', "e"), 5).toList.map { x => "[" + x.mkString(", ") + "]" })
+   */
+  def group_array[T: scala.reflect.ClassTag](a: Array[T], group_count: Int) = {
+    val s = a.length / group_count
+    val m = a.length % group_count
+
+    if (a.length < group_count) {
+      a.map { x => Array(x) }
+    } else if (m == 0) {
+      a.grouped(s).toArray
+    } else {
+      val tmp1 = m.range.map { i =>
+        a.slice(i * (s + 1), (i + 1) * (s + 1)).toArray
+      }
+      val tmp2 = a.drop(m * (s + 1)).grouped(s)
+      (tmp1 ++ tmp2).toArray
+    }
+
+  }
+
 }

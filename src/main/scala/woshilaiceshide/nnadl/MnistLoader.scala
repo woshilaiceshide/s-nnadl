@@ -123,7 +123,24 @@ object MnistLoader {
   final case class MnistRawDataSet(training_data: MnistRawData, validation_data: MnistRawData, test_data: MnistRawData)
 
   final case class MnistRecord1(image: Matrix, label: Matrix)
-  final case class MnistRecord2(image: Matrix, label: Int)
+  final case class MnistRecord2(image: Matrix, label: Int) {
+    def save() = {
+
+      import java.awt.Point
+      import java.awt.image._
+      import javax.imageio.ImageIO
+      val reshaped = image.reshape(28, 28).transpose()
+      val pixels = reshaped.toArray()
+      val (w, h) = reshaped.dim
+      val raster = Raster.createWritableRaster(new PixelInterleavedSampleModel(0, w, h, 1, 1920, Array(0)), new Point(0, 0))
+
+      for (i <- w.range; j <- h.range) { raster.setSample(i, j, 0, pixels(i)(j)) }
+      val jimage = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_GRAY);
+      jimage.setData(raster)
+      val output = new File(label + "." + System.currentTimeMillis() + ".jpg")
+      ImageIO.write(jimage, "jpg", output)
+    }
+  }
   final case class MnistDataSet(training_data: Array[MnistRecord1], validation_data: Array[MnistRecord2], test_data: Array[MnistRecord2])
 
   def load_data(folder: String = default_folder): MnistRawDataSet = {

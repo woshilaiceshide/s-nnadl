@@ -8,6 +8,8 @@ object Network {}
 
 class Network(sizes: Seq[Int]) {
 
+  assert(sizes.length >= 2)
+
   import Network._
 
   override def toString() = {
@@ -34,32 +36,29 @@ current weights:
 ${formatted_weights.mkString(System.lineSeparator())}"""
   }
 
-  private val rnd = new scala.util.Random()
+  protected val rnd = new scala.util.Random()
 
   val num_layers = sizes.length
 
-  val biases = sizes.slice(1, sizes.length).toArray.map { layer_size =>
-    val tmp = Matrix.random(rnd, layer_size, 1)
-    tmp
-  }
+  var biases = sizes.slice(1, sizes.length).map { layer_size =>
+    Matrix.random(rnd, layer_size, 1)
+  }.toArray
 
-  val weights = (sizes.slice(0, sizes.length - 1) zip sizes.slice(1, sizes.length)).toArray.map { one =>
+  var weights = (sizes.slice(0, sizes.length - 1) zip sizes.slice(1, sizes.length)).map { one =>
     val (x, y) = one
     Matrix.random(rnd, y, x)
-  }
+  }.toArray
 
-  def feedforward(input: Array[Double]) = {
+  def feedforward(input: Array[Double]): Matrix = feedforward(Matrix.vertical(input))
+
+  def feedforward(input: Matrix): Matrix = {
+    var a = input
     val zipped = biases zip weights
-    @scala.annotation.tailrec
-    def iterate(i: Int, a: Matrix): Matrix = {
-      if (i < zipped.length) {
-        val (b, w) = zipped(i)
-        iterate(i + 1, Calc.sigmoid(w.dot(a) + b))
-      } else {
-        a
-      }
+    zipped.length.range.map { i =>
+      val (b, w) = zipped(i)
+      a = Calc.sigmoid(w.dot(a) + b)
     }
-    iterate(0, Matrix.vertical(input))
+    a
   }
 
   def SGD(
@@ -67,7 +66,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     epochs: Int,
     mini_batch_size: Int,
     eta: Double,
-    test_data: Option[Array[MnistLoader.MnistRecord2]] = None) = {
+    test_data: Option[Array[MnistLoader.MnistRecord2]]): Unit = {
     val n_test = test_data.map { _.length }.getOrElse(0)
     val n = training_data.length
     epochs.range.map { j =>
@@ -84,19 +83,76 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
         case None =>
           println(s"""Epoch ${j} complete""")
       }
+    }
+  }
 
+  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Double) = {
+    var nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
+    var nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
+    mini_batch.map { x =>
+      val MnistLoader.MnistRecord1(image, label) = x
+      val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
+      nabla_b = (nabla_b zip delta_nabla_b).map { x =>
+        val (nb, dnb) = x
+        nb + dnb
+      }.toArray
+
+      nabla_w = (nabla_w zip delta_nabla_w).map { x =>
+        val (nw, dnw) = x
+        nw + dnw
+      }
     }
 
+    weights = (weights zip nabla_w).map { x =>
+      val (w, nw) = x
+      w - nw * (eta / mini_batch.length)
+    }.toArray
+
+    biases = (biases zip nabla_b).map { x =>
+      val (b, nb) = x
+      b - nb * (eta / mini_batch.length)
+    }.toArray
+
   }
 
-  //TODO
-  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Double) = {
+  def backprop(x: Matrix, y: Matrix) = {
 
+    val nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
+    val nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
+
+    val activations = new Array[Matrix](num_layers); activations(0) = x
+    val zs = new Array[Matrix](num_layers - 1)
+    val zipped = (biases zip weights)
+    zipped.length.range.map { i =>
+      val (b, w) = zipped(i)
+      val z = w.dot(activations(i)) + b
+      zs(i) = z
+      activations(i + 1) = Calc.sigmoid(z)
+    }
+    var delta = cost_derivative(activations.last, y) * Calc.sigmoid_prime(zs.last)
+    nabla_b(nabla_b.length - 1) = delta
+    nabla_w(nabla_w.length - 1) = delta.dot(activations(activations.length - 2).transpose())
+
+    (2 until num_layers).map { l =>
+      val z = zs(zs.length - l)
+      val sp = Calc.sigmoid_prime(z)
+      delta = weights(weights.length - l + 1).transpose().dot(delta) * sp
+      nabla_b(nabla_b.length - l) = delta
+      nabla_w(nabla_w.length - l) = delta.dot(activations(activations.length - l - 1).transpose())
+    }
+
+    (nabla_b, nabla_w)
   }
 
-  //TODO 
+  def cost_derivative(output_activations: Matrix, y: Matrix) = {
+    output_activations - y
+  }
+
   def evaluate(test_data: Array[MnistLoader.MnistRecord2]) = {
-
+    val test_results = test_data.map { record =>
+      (Matrix.argmax(feedforward(record.image), 0)(0), record.label)
+    }
+    test_results.count(x => x._1 == x._2)
   }
 
 }

@@ -30,6 +30,33 @@ object Matrix {
     apply(r_count, c_count, (i, j) => a(i)(j))
   }
 
+  def argmax(a: Array[Double]): Int = {
+    val ord = new Ordering[(Double, Int)] {
+      def compare(x: (Double, Int), y: (Double, Int)): Int = x._1.compare(y._1)
+    }
+    (a zip a.length.range).max(ord)._2
+  }
+
+  def argmax(a: Array[Int]): Int = {
+    val ord = new Ordering[(Int, Int)] {
+      def compare(x: (Int, Int), y: (Int, Int)): Int = x._1.compare(y._1)
+    }
+    (a zip a.length.range).max(ord)._2
+  }
+
+  /**
+   * @param axis: 0 stands for 'row', 1 stands for 'column'
+   */
+  def argmax(m: Matrix, axis: Int = 0): Array[Int] = {
+    if (0 == axis) {
+      m.map_column((c_number, line) => {
+        argmax(line.toArray())
+      })
+    } else {
+      m.map_column((c_number, line) => { argmax(line.toArray()) })
+    }
+  }
+
 }
 
 class Line(getter: Int => Double, val length: Int, val is_row: Boolean) {
@@ -106,6 +133,22 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
   def column(j: Int): Line = new Line((i: Int) => apply(i)(j), r_count, false)
   def row(i: Int): Line = new Line((j: Int) => apply(i)(j), c_count, true)
 
+  def zeros_with_the_same_shape() = new Matrix(r_count, c_count)
+
+  def transpose() = Matrix(c_count, r_count, (i, j) => this(j)(i))
+
+  def toArray() = {
+    val tmp = new Array[Array[Int]](r_count)
+    tmp.length.range.map { i =>
+      val row = new Array[Int](c_count)
+      row.length.range.map { j =>
+        row(j) = this(i)(j).toInt
+      }
+      tmp(i) = row
+    }
+    tmp
+  }
+
   def map(f: Double => Double): Matrix = {
     val tmp = new Matrix(r_count, c_count)
     for (i <- r_count.range; j <- c_count.range) {
@@ -122,8 +165,12 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
     tmp
   }
 
-  def map_row[T](i: Int, f: (Int, Double) => T) = {
+  def map_row[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
+    r_count.range.map { i => f(i, row(i)) }.toArray
+  }
 
+  def map_column[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
+    c_count.range.map { j => f(j, column(j)) }.toArray
   }
 
   private def map_directly(f: Double => Double): this.type = {
@@ -148,8 +195,10 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
     }
     tmp
   }
+  def -(b: Matrix) = this + (b * -1)
 
   def +(d: Double) = map { _ + d }
+  def -(d: Double) = map { _ - d }
 
   def dot(b: Matrix) = {
     val (m, n) = this.dim
@@ -165,8 +214,12 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
     }
     tmp
   }
+  def dot(d: Double) = map { _ * d }
 
-  def *(b: Matrix) = dot(b)
+  def *(b: Matrix) = {
+    assert(this.dim == b.dim)
+    this.map { (i, j, v) => v * b(i)(j) }
+  }
 
   def *(d: Double) = map { _ * d }
 
