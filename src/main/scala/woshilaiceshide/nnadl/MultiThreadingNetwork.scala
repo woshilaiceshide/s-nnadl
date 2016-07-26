@@ -48,15 +48,18 @@ class MultiThreadingNetwork(sizes: Seq[Int]) extends Network(sizes) {
       val grouped_test_data = test_data.map { x => Utility.group_array(x, workers.length) }
 
       epochs.range.map { j =>
+
+        val start = System.currentTimeMillis()
+
         val shuffled = rnd.shuffle(training_data.toSeq).toArray
         val mini_batches = 0.until(n, mini_batch_size).map { k =>
-          training_data.slice(k, k + mini_batch_size)
+          shuffled.slice(k, k + mini_batch_size)
         }
 
         mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, workers) }
 
         grouped_test_data match {
-          case Some(grouped_test_data) =>
+          case Some(grouped_test_data) if 0 == j % 5 =>
             val medias = new Array[Int](grouped_test_data.length)
             val latch = new java.util.concurrent.CountDownLatch(grouped_test_data.length)
             grouped_test_data.length.range.map { i =>
@@ -71,12 +74,15 @@ class MultiThreadingNetwork(sizes: Seq[Int]) extends Network(sizes) {
 
             }
             latch.await()
-            println(s"""Epoch ${j}: ${medias.reduce(_ + _)} / ${n_test}""")
-          case None =>
-            println(s"""Epoch ${j} complete""")
+            val end = System.currentTimeMillis()
+            println(s"""Epoch ${j}: ${end - start}ms ${medias.reduce(_ + _)} / ${n_test}""")
+          case _ =>
+            val end = System.currentTimeMillis()
+            println(s"""Epoch ${j}: ${end - start}ms completed""")
         }
       }
       workers.map { _.shutdown() }
+      workers.map { _.join() }
     }
   }
 

@@ -72,7 +72,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     epochs.range.map { j =>
       val shuffled = rnd.shuffle(training_data.toSeq).toArray
       val mini_batches = 0.until(n, mini_batch_size).map { k =>
-        training_data.slice(k, k + mini_batch_size)
+        shuffled.slice(k, k + mini_batch_size)
       }
 
       mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta) }

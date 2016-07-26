@@ -95,7 +95,7 @@ class Line(getter: Int => Double, val length: Int, val is_row: Boolean) {
 
 }
 
-class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
+class Matrix private (r_count: Int, c_count: Int, private val array: Array[Double]) {
 
   override def toString() = format("")
 
@@ -150,11 +150,13 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
   }
 
   def map(f: Double => Double): Matrix = {
-    val tmp = new Matrix(r_count, c_count)
-    for (i <- r_count.range; j <- c_count.range) {
-      tmp(i, j) = f(this(i)(j))
+    val array1 = new Array[Double](array.length)
+    var i = 0
+    while (i < array1.length) {
+      array1(i) = f(array(i))
+      i = i + 1
     }
-    tmp
+    new Matrix(r_count, c_count, array1)
   }
 
   def map(f: (Int, Int, Double) => Double): Matrix = {
@@ -174,8 +176,10 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
   }
 
   private def map_directly(f: Double => Double): this.type = {
-    for (i <- r_count.range; j <- c_count.range) {
-      this(i, j) = f(this(i)(j))
+    var i = 0
+    while (i < array.length) {
+      array(i) = f(array(i))
+      i = i + 1
     }
     this
   }
@@ -189,16 +193,27 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
 
   def +(b: Matrix) = {
     assert(this.dim == b.dim)
-    val tmp = new Matrix(r_count, c_count)
-    for (i <- r_count.range; j <- c_count.range) {
-      tmp(i, j) = this(i)(j) + b(i)(j)
+    val array1 = new Array[Double](array.length)
+    var i = 0
+    while (i < array1.length) {
+      array1(i) = array(i) + b.array(i)
+      i = i + 1
     }
-    tmp
+    new Matrix(r_count, c_count, array1)
   }
   def -(b: Matrix) = this + (b * -1)
 
-  def +(d: Double) = map { _ + d }
-  def -(d: Double) = map { _ - d }
+  def +(d: Double) = {
+    //map { _ + d }
+    val array1 = new Array[Double](array.length)
+    var i = 0
+    while (i < array1.length) {
+      array1(i) = array(i) + d
+      i = i + 1
+    }
+    new Matrix(r_count, c_count, array1)
+  }
+  def -(d: Double) = this.+(-d)
 
   def dot(b: Matrix) = {
     val (m, n) = this.dim
@@ -214,13 +229,29 @@ class Matrix private (r_count: Int, c_count: Int, array: Array[Double]) {
     }
     tmp
   }
-  def dot(d: Double) = map { _ * d }
+  def dot(d: Double) = {
+    //map { _ * d }
+    val array1 = new Array[Double](array.length)
+    var i = 0
+    while (i < array1.length) {
+      array1(i) = array(i) * d
+      i = i + 1
+    }
+    new Matrix(r_count, c_count, array1)
+
+  }
 
   def *(b: Matrix) = {
     assert(this.dim == b.dim)
-    this.map { (i, j, v) => v * b(i)(j) }
+    val array1 = new Array[Double](array.length)
+    var i = 0
+    while (i < array1.length) {
+      array1(i) = array(i) * b.array(i)
+      i = i + 1
+    }
+    new Matrix(r_count, c_count, array1)
   }
 
-  def *(d: Double) = map { _ * d }
+  def *(d: Double) = dot(d)
 
 }
