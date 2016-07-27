@@ -68,7 +68,6 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     mini_batch_size: Int,
     eta: Double,
     test_data: Option[Array[MnistLoader.MnistRecord2]]): Unit = {
-    val n_test = test_data.map { _.length }.getOrElse(0)
     val n = training_data.length
     epochs.range.map { j =>
       val shuffled = rnd.shuffle(training_data.toSeq).toArray
@@ -80,7 +79,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
       test_data match {
         case Some(test_data) =>
-          println(s"""Epoch ${j}: ${evaluate(test_data)} / ${n_test}""")
+          println(s"""Epoch ${j}: ${evaluate(test_data)} / ${test_data.length}""")
         case None =>
           println(s"""Epoch ${j} complete""")
       }
