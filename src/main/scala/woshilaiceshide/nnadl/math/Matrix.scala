@@ -60,31 +60,70 @@ object Matrix {
       })
   }
 
-  def argmax(a: Array[Double]): Int = {
-    val ord = new Ordering[(Double, Int)] {
-      def compare(x: (Double, Int), y: (Double, Int)): Int = x._1.compare(y._1)
+  def argmax(a: Line): Int = {
+    if (0 == a.length) -1
+    else {
+      var x = 0
+      var max = a(x)
+      var i = 1
+      while (i < a.length) {
+        if (a(i) > max) {
+          x = i
+          max = a(i)
+        }
+        i = i + 1
+      }
+      x
     }
-    (a zip a.length.range).max(ord)._2
+  }
+
+  def argmax(a: Array[Double]): Int = {
+    if (0 == a.length) -1
+    else {
+      var x = 0
+      var max = a(x)
+      var i = 1
+      while (i < a.length) {
+        if (a(i) > max) {
+          x = i
+          max = a(i)
+        }
+        i = i + 1
+      }
+      x
+    }
   }
 
   def argmax(a: Array[Int]): Int = {
-    val ord = new Ordering[(Int, Int)] {
-      def compare(x: (Int, Int), y: (Int, Int)): Int = x._1.compare(y._1)
+    if (0 == a.length) -1
+    else {
+      var x = 0
+      var max = a(x)
+      var i = 1
+      while (i < a.length) {
+        if (a(i) > max) {
+          x = i
+          max = a(i)
+        }
+        i = i + 1
+      }
+      x
     }
-    (a zip a.length.range).max(ord)._2
+  }
+
+  trait LineIterator[T] { def apply(line_number: Int, line: Line): T }
+  private val ARGMAX_LINE_ITERATOR = new LineIterator[Int] {
+    def apply(line_number: Int, line: Line): Int = argmax(line)
   }
 
   /**
    * @param axis: 0 stands for 'row', 1 stands for 'column'
    */
   def argmax(m: Matrix, axis: Int = 0): Array[Int] = {
-    if (0 == axis) {
-      m.map_column((c_number, line) => {
-        argmax(line.toArray())
-      })
-    } else {
-      m.map_row((r_number, line) => { argmax(line.toArray()) })
-    }
+    if (0 == axis)
+      m.map_column(ARGMAX_LINE_ITERATOR)
+    else
+      m.map_row(ARGMAX_LINE_ITERATOR)
   }
 
 }
@@ -95,6 +134,8 @@ object Line {
 class Line(retriever: Line.Retriever, val length: Int, val is_row: Boolean) {
 
   final def is_column: Boolean = !is_row
+
+  def apply(i: Int) = retriever(i)
 
   def toArray(a: Array[Double] = new Array(length)) = {
     length.range.map { x => a(x) = retriever(x) }
@@ -176,12 +217,24 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     tmp
   }
 
-  def map_row[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
-    r_count.range.map { i => f(i, row(i)) }.toArray
+  def map_row[T: scala.reflect.ClassTag](f: LineIterator[T]) = {
+    val a = new Array[T](r_count)
+    var i = 0
+    while (i < a.length) {
+      a(i) = f(i, row(i))
+      i = i + 1
+    }
+    a
   }
 
-  def map_column[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
-    c_count.range.map { j => f(j, column(j)) }.toArray
+  def map_column[T: scala.reflect.ClassTag](f: LineIterator[T]) = {
+    val a = new Array[T](c_count)
+    var j = 0
+    while (j < a.length) {
+      a(j) = f(j, column(j))
+      j = j + 1
+    }
+    a
   }
 
   protected def map_directly(transformer: ValueTransformer): this.type = {
