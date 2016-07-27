@@ -161,8 +161,14 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
 
   def map(f: (Int, Int, Double) => Double): Matrix = {
     val tmp = new Matrix(r_count, c_count)
-    for (i <- r_count.range; j <- c_count.range) {
-      tmp(i, j) = f(i, j, this(i)(j))
+    var j = 0
+    while (j < c_count) {
+      var i = 0
+      while (i < r_count) {
+        tmp(i, j) = f(i, j, this(i)(j))
+        i = i + 1
+      }
+      j = j + 1
     }
     tmp
   }
@@ -176,17 +182,27 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
   }
 
   private def map_directly(f: Double => Double): this.type = {
-    var i = 0
-    while (i < array.length) {
-      array(i) = f(array(i))
-      i = i + 1
+    var j = 0
+    while (j < c_count) {
+      var i = 0
+      while (i < r_count) {
+        this(i, j) = f(this(i)(j))
+        i = i + 1
+      }
+      j = j + 1
     }
     this
   }
 
   private def map_directly(f: (Int, Int, Double) => Double): this.type = {
-    for (i <- r_count.range; j <- c_count.range) {
-      this(i, j) = f(i, j, this(i)(j))
+    var j = 0
+    while (j < c_count) {
+      var i = 0
+      while (i < r_count) {
+        this(i, j) = f(i, j, this(i)(j))
+        i = i + 1
+      }
+      j = j + 1
     }
     this
   }
@@ -222,11 +238,25 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
     assert(n == x)
 
     val tmp = new Matrix(m, y)
-    for (i <- m.range; j <- y.range) {
-      val r = this(i) _
-      def c(index: Int) = b(index)(j)
-      tmp(i, j) = c_count.range.map { x => r(x) * c(x) }.sum
+
+    var j = 0
+    while (j < y) {
+      var i = 0
+      while (i < m) {
+        tmp(i, j) = {
+          var x = 0
+          var sum = 0.0d
+          while (x < c_count) {
+            sum = sum + this(i)(x) * b(x)(j)
+            x = x + 1
+          }
+          sum
+        }
+        i = i + 1
+      }
+      j = j + 1
     }
+
     tmp
   }
   def dot(d: Double) = {
