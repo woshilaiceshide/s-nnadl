@@ -30,7 +30,7 @@ object Runner extends App {
     //val network = new Network(Array(784, 30, 10)) 
     val network = new MultiThreadingNetwork(Array(784, 30, 10))
     val MnistDataSet(training_data, validation_data, test_data) = TextMnistLoader.load_data_wrapper()
-    network.SGD(training_data, 1000, 500, 3.0d, test_data = Some(test_data), 4)
+    network.SGD(training_data, 1000, 30, 3.0d, test_data = Some(test_data), 4)
   }
   test_network()
 
