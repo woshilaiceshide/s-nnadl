@@ -158,7 +158,7 @@ object MnistLoader {
       MnistRawData(images, labels)
     }
 
-    val (training_data, validation_data) = generate_raw_data(file_train_images, file_train_labels).split(5000)
+    val (training_data, validation_data) = generate_raw_data(file_train_images, file_train_labels).split(50000)
     val test_data = generate_raw_data(file_t10_images, file_t10_labels)
 
     MnistRawDataSet(training_data, validation_data, test_data)
@@ -169,14 +169,14 @@ object MnistLoader {
 
     val MnistRawDataSet(tr_d, va_d, te_d) = load_data(folder)
 
-    val training_inputs = tr_d.images.map { _.reshape(784, 1) }
+    val training_inputs = tr_d.images.map { _.transpose().reshape(784, 1) }
     val training_results = tr_d.labels.map { vectorized_result(_) }
     val training_data = (training_inputs zip training_results).map { x => MnistRecord1(x._1, x._2) }
 
-    val validation_inputs = va_d.images.map { _.reshape(784, 1) }
+    val validation_inputs = va_d.images.map { _.transpose().reshape(784, 1) }
     val validation_data = (validation_inputs zip va_d.labels).map { x => MnistRecord2(x._1, x._2) }
 
-    val test_inputs = te_d.images.map { _.reshape(784, 1) }
+    val test_inputs = te_d.images.map { _.transpose().reshape(784, 1) }
     val test_data = (test_inputs zip te_d.labels).map { x => MnistRecord2(x._1, x._2) }
 
     MnistDataSet(training_data, validation_data, test_data)
