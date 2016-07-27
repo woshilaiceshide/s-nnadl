@@ -7,7 +7,7 @@ import woshilaiceshide.nnadl.math._
 
 object MultiThreadingNetwork {}
 
-class MultiThreadingNetwork(sizes: Seq[Int]) extends Network(sizes) {
+class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
 
   private val STOP_SIGNAL = new Runnable() { def run() {} }
 

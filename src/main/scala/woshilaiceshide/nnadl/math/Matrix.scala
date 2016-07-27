@@ -83,7 +83,7 @@ object Matrix {
         argmax(line.toArray())
       })
     } else {
-      m.map_column((c_number, line) => { argmax(line.toArray()) })
+      m.map_row((r_number, line) => { argmax(line.toArray()) })
     }
   }
 

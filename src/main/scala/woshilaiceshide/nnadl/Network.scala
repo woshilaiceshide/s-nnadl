@@ -6,7 +6,7 @@ import woshilaiceshide.nnadl.math._
 
 object Network {}
 
-class Network(sizes: Seq[Int]) {
+class Network(sizes: Array[Int]) {
 
   assert(sizes.length >= 2)
 
@@ -53,10 +53,11 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
   def feedforward(input: Matrix): Matrix = {
     var a = input
-    val zipped = biases zip weights
-    zipped.length.range.map { i =>
-      val (b, w) = zipped(i)
+    var i = 0
+    while (i < biases.length) {
+      val b = biases(i); val w = weights(i)
       a = Calc.sigmoid(w.dot(a) + b)
+      i = i + 1
     }
     a
   }
@@ -166,14 +167,6 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
   }
 
   def evaluate(test_data: Array[MnistLoader.MnistRecord2]) = {
-
-    /*
-     * val test_results = test_data.map { record =>
-      (Matrix.argmax(feedforward(record.image), 0)(0), record.label)
-    }
-    test_results.count(x => x._1 == x._2)
-     */
-
     var corrected = 0
     var i = 0
     while (i < test_data.length) {
