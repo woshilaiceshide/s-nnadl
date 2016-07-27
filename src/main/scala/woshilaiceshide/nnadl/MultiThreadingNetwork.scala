@@ -96,18 +96,43 @@ class MultiThreadingNetwork(sizes: Seq[Int]) extends Network(sizes) {
         def run() {
           var nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
           var nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
-          grouped(i).map { x =>
-            val MnistLoader.MnistRecord1(image, label) = x
-            val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
-            nabla_b = (nabla_b zip delta_nabla_b).map { x =>
-              val (nb, dnb) = x
-              nb + dnb
-            }.toArray
 
-            nabla_w = (nabla_w zip delta_nabla_w).map { x =>
-              val (nw, dnw) = x
-              nw + dnw
+          {
+            def work1() = {
+              grouped(i).map { x =>
+                val MnistLoader.MnistRecord1(image, label) = x
+                val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
+                nabla_b = (nabla_b zip delta_nabla_b).map { x =>
+                  val (nb, dnb) = x
+                  nb + dnb
+                }
+
+                nabla_w = (nabla_w zip delta_nabla_w).map { x =>
+                  val (nw, dnw) = x
+                  nw + dnw
+                }
+              }
             }
+
+            def work2() = {
+              var x1 = 0
+              while (x1 < grouped(i).length) {
+                val x = grouped(i)(x1)
+                val MnistLoader.MnistRecord1(image, label) = x
+                val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
+                (nabla_b zip delta_nabla_b).map { x =>
+                  val (nb, dnb) = x
+                  nb.plus_directly(dnb)
+                }
+
+                (nabla_w zip delta_nabla_w).map { x =>
+                  val (nw, dnw) = x
+                  nw.plus_directly(dnw)
+                }
+                x1 = x1 + 1
+              }
+            }
+            work2()
           }
           medias(i) = (nabla_b, nabla_w)
           latch.countDown()

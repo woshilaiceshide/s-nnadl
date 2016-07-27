@@ -4,30 +4,60 @@ import woshilaiceshide.nnadl.util.Utility._
 
 object Matrix {
 
+  trait ValueTransformer { def apply(v: Double): Double }
+  trait CrossTransformer { def apply(i: Int, j: Int, v: Double): Double }
+
   def apply(r_count: Int, c_count: Int) = new Matrix(r_count, c_count)
 
-  def apply(r_count: Int, c_count: Int, generator: (Int, Int) => Double) = {
-    new Matrix(r_count, c_count).map_directly { (i, j, v) => generator(i, j) }
+  def apply(r_count: Int, c_count: Int, transformer: CrossTransformer) = {
+    new Matrix(r_count, c_count).map_directly { transformer }
   }
 
-  def random(rnd: scala.util.Random, r: Int, c: Int) = apply(r, c, (i, j) => rnd.nextGaussian())
+  def random(rnd: scala.util.Random, r: Int, c: Int): Matrix = apply(
+    r,
+    c,
+    new CrossTransformer() {
+      def apply(i: Int, j: Int, v: Double): Double = rnd.nextGaussian()
+    })
 
-  def vertical(a: Array[Double]) = apply(a.length, 1, (i, j) => a(i))
-  def vertical_unsafely(a: Array[Double]) = new Matrix(a.length, 1, a)
+  def vertical(a: Array[Double]): Matrix = {
+    val array = new Array[Double](a.length)
+    System.arraycopy(a, 0, array, 0, a.length)
+    new Matrix(a.length, 1, array)
+  }
+  def vertical_unsafely(a: Array[Double]): Matrix = new Matrix(a.length, 1, a)
 
-  def horizontal(a: Array[Double]) = apply(1, a.length, (i, j) => a(j))
-  def horizontal_unsafely(a: Array[Double]) = new Matrix(1, a.length, a)
+  def horizontal(a: Array[Double]): Matrix = {
+    val array = new Array[Double](a.length)
+    System.arraycopy(a, 0, array, 0, a.length)
+    new Matrix(1, a.length, array)
+  }
+  def horizontal_unsafely(a: Array[Double]): Matrix = new Matrix(1, a.length, a)
 
-  def wrap(a: Array[Array[Double]]) = {
+  def wrap(a: Array[Array[Double]]): Matrix = {
     val r_count = a.length
     val c_count = if (0 == r_count) 0 else a(0).length
-    apply(r_count, c_count, (i, j) => a(i)(j))
+    apply(
+      r_count,
+      c_count,
+      new CrossTransformer() {
+        def apply(i: Int, j: Int, v: Double) = {
+          a(i)(j)
+        }
+      })
   }
 
-  def wrap(a: Array[Array[Int]]) = {
+  def wrap(a: Array[Array[Int]]): Matrix = {
     val r_count = a.length
     val c_count = if (0 == r_count) 0 else a(0).length
-    apply(r_count, c_count, (i, j) => a(i)(j))
+    apply(
+      r_count,
+      c_count,
+      new CrossTransformer() {
+        def apply(i: Int, j: Int, v: Double) = {
+          a(i)(j)
+        }
+      })
   }
 
   def argmax(a: Array[Double]): Int = {
@@ -59,17 +89,20 @@ object Matrix {
 
 }
 
-class Line(getter: Int => Double, val length: Int, val is_row: Boolean) {
+object Line {
+  trait Retriever { def apply(i: Int): Double }
+}
+class Line(retriever: Line.Retriever, val length: Int, val is_row: Boolean) {
 
   final def is_column: Boolean = !is_row
 
   def toArray(a: Array[Double] = new Array(length)) = {
-    length.range.map { x => a(x) = getter(x) }
+    length.range.map { x => a(x) = retriever(x) }
     a
   }
 
   def map[T](f: Double => T): IndexedSeq[T] = {
-    length.range.map { x => f(getter(x)) }
+    length.range.map { x => f(retriever(x)) }
   }
 
   override def toString() = format("")
@@ -88,14 +121,16 @@ class Line(getter: Int => Double, val length: Int, val is_row: Boolean) {
       s"""${margin}[${map { format }.mkString(", ")}]"""
     } else {
       length.range.map { x =>
-        s"""|${format(getter(x))}|"""
+        s"""|${format(retriever(x))}|"""
       }.map { margin + _ }.mkString(System.lineSeparator())
     }
   }
 
 }
 
-class Matrix private (r_count: Int, c_count: Int, private val array: Array[Double]) {
+class Matrix protected[math] (val r_count: Int, val c_count: Int, private val array: Array[Double]) {
+
+  import Matrix._
 
   override def toString() = format("")
 
@@ -114,28 +149,20 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
     }.map { margin + _ }.mkString(System.lineSeparator())
   }
 
-  def this(r_count: Int, c_count: Int) = this(r_count, c_count, new Array[Double](r_count * c_count))
-
-  /**
-   * the returned matrix shares the underlying array with me.
-   */
-  def reshape(r1: Int, c1: Int) = {
-    assert(r1 * c1 == array.length)
-    new Matrix(r1, c1, array)
-  }
-
   def dim = (r_count, c_count)
 
-  def apply(i: Int)(j: Int) = { array((i) * c_count + j) }
-
-  def update(i: Int, j: Int, v: Double) = { array((i) * c_count + j) = v }
-
-  def column(j: Int): Line = new Line((i: Int) => apply(i)(j), r_count, false)
-  def row(i: Int): Line = new Line((j: Int) => apply(i)(j), c_count, true)
-
-  def zeros_with_the_same_shape() = new Matrix(r_count, c_count)
-
-  def transpose() = Matrix(c_count, r_count, (i, j) => this(j)(i))
+  def column(j: Int): Line = {
+    val retriever = new Line.Retriever {
+      def apply(i: Int) = Matrix.this.apply(i)(j)
+    }
+    new Line(retriever, r_count, false)
+  }
+  def row(i: Int): Line = {
+    val retriever = new Line.Retriever {
+      def apply(j: Int) = Matrix.this.apply(i)(j)
+    }
+    new Line(retriever, r_count, false)
+  }
 
   def toArray() = {
     val tmp = new Array[Array[Int]](r_count)
@@ -149,7 +176,78 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
     tmp
   }
 
-  def map(f: Double => Double): Matrix = {
+  def map_row[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
+    r_count.range.map { i => f(i, row(i)) }.toArray
+  }
+
+  def map_column[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
+    c_count.range.map { j => f(j, column(j)) }.toArray
+  }
+
+  protected def map_directly(transformer: ValueTransformer): this.type = {
+    var j = 0
+    while (j < c_count) {
+      var i = 0
+      while (i < r_count) {
+        this(i, j) = transformer(this(i)(j))
+        i = i + 1
+      }
+      j = j + 1
+    }
+    this
+  }
+
+  protected def map_directly(transformer: CrossTransformer): this.type = {
+    var j = 0
+    while (j < c_count) {
+      var i = 0
+      while (i < r_count) {
+        this(i, j) = transformer(i, j, this(i)(j))
+        i = i + 1
+      }
+      j = j + 1
+    }
+    this
+  }
+
+  def of_the_same_dim(b: Matrix) = assert(r_count == b.r_count && c_count == b.c_count)
+
+  def this(r_count: Int, c_count: Int) = this(r_count, c_count, new Array[Double](r_count * c_count))
+
+  /**
+   * the returned matrix shares the underlying array with me.
+   */
+  def reshape(r1: Int, c1: Int) = {
+    assert(r1 * c1 == array.length)
+    new Matrix(r1, c1, array)
+  }
+
+  def apply(i: Int)(j: Int) = { array((i) * c_count + j) }
+
+  def update(i: Int, j: Int, v: Double) = { array((i) * c_count + j) = v }
+
+  def zeros_with_the_same_shape() = new Matrix(r_count, c_count)
+
+  /**
+   * if this matrix if of 1 column of 1 row,
+   * then the returened matrix is shared the inner array with this matrix.
+   */
+  def transpose() = {
+    if (1 == r_count || 1 == c_count) {
+      //val array1 = new Array[Double](array.length)
+      //System.arraycopy(array, 0, array1, 0, array.length)
+      //new Matrix(c_count, r_count, array1)
+      new Matrix(c_count, r_count, array)
+    } else {
+      new Matrix(c_count, r_count).map_directly {
+        new CrossTransformer() {
+          def apply(i: Int, j: Int, v: Double) = { Matrix.this.apply(j)(i) }
+        }
+      }
+    }
+  }
+
+  def map(f: ValueTransformer): Matrix = {
     val array1 = new Array[Double](array.length)
     var i = 0
     while (i < array1.length) {
@@ -159,7 +257,7 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
     new Matrix(r_count, c_count, array1)
   }
 
-  def map(f: (Int, Int, Double) => Double): Matrix = {
+  def map(f: CrossTransformer): Matrix = {
     val tmp = new Matrix(r_count, c_count)
     var j = 0
     while (j < c_count) {
@@ -173,42 +271,19 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
     tmp
   }
 
-  def map_row[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
-    r_count.range.map { i => f(i, row(i)) }.toArray
-  }
-
-  def map_column[T: scala.reflect.ClassTag](f: (Int, Line) => T) = {
-    c_count.range.map { j => f(j, column(j)) }.toArray
-  }
-
-  private def map_directly(f: Double => Double): this.type = {
-    var j = 0
-    while (j < c_count) {
-      var i = 0
-      while (i < r_count) {
-        this(i, j) = f(this(i)(j))
-        i = i + 1
-      }
-      j = j + 1
+  def plus_directly(b: Matrix): Matrix = {
+    of_the_same_dim(b)
+    var i = 0
+    while (i < array.length) {
+      array(i) = array(i) + b.array(i)
+      i = i + 1
     }
     this
   }
 
-  private def map_directly(f: (Int, Int, Double) => Double): this.type = {
-    var j = 0
-    while (j < c_count) {
-      var i = 0
-      while (i < r_count) {
-        this(i, j) = f(i, j, this(i)(j))
-        i = i + 1
-      }
-      j = j + 1
-    }
-    this
-  }
+  def +(b: Matrix): Matrix = {
+    of_the_same_dim(b)
 
-  def +(b: Matrix) = {
-    assert(this.dim == b.dim)
     val array1 = new Array[Double](array.length)
     var i = 0
     while (i < array1.length) {
@@ -232,9 +307,10 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
   def -(d: Double) = this.+(-d)
 
   def dot(b: Matrix) = {
-    val (m, n) = this.dim
-    val (x, y) = b.dim
-
+    val m = r_count
+    val n = c_count
+    val x = b.r_count
+    val y = b.c_count
     assert(n == x)
 
     val tmp = new Matrix(m, y)
@@ -271,8 +347,18 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
 
   }
 
+  def multiple_directly(b: Matrix) = {
+    of_the_same_dim(b)
+    var i = 0
+    while (i < array.length) {
+      array(i) = array(i) * b.array(i)
+      i = i + 1
+    }
+    this
+  }
   def *(b: Matrix) = {
-    assert(this.dim == b.dim)
+    of_the_same_dim(b)
+
     val array1 = new Array[Double](array.length)
     var i = 0
     while (i < array1.length) {
@@ -281,7 +367,6 @@ class Matrix private (r_count: Int, c_count: Int, private val array: Array[Doubl
     }
     new Matrix(r_count, c_count, array1)
   }
-
   def *(d: Double) = dot(d)
 
 }

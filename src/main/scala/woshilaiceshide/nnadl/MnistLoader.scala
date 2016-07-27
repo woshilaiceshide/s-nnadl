@@ -47,7 +47,7 @@ object MnistLoader {
    */
   def read_images(path: String) = {
     using(new FileInputStream(path)) { input =>
-      using(new GZIPInputStream(input)) { gzip =>
+      using(new GZIPInputStream(input, 4096 * 1024)) { gzip =>
 
         def next_int() = read_int_with_msb(gzip)
         def next_byte() = read_unsigned_byte(gzip)
@@ -129,7 +129,7 @@ object MnistLoader {
       import java.awt.Point
       import java.awt.image._
       import javax.imageio.ImageIO
-      val reshaped = image.reshape(28, 28).transpose()
+      val reshaped = image.reshape(28, 28)
       val pixels = reshaped.toArray()
       val (w, h) = reshaped.dim
       val raster = Raster.createWritableRaster(new PixelInterleavedSampleModel(0, w, h, 1, 1920, Array(0)), new Point(0, 0))

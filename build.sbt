@@ -60,3 +60,13 @@ enablePlugins(JavaAppPackaging)
 unmanagedSourceDirectories in Compile <+= baseDirectory( _ / "src" / "java" )
 
 unmanagedSourceDirectories in Compile <+= baseDirectory( _ / "src" / "scala" )
+
+javaOptions in Universal += "-J-Xmx2048m"
+javaOptions in Universal += "-J-Xms2048m"
+//javaOptions in Universal += "-J-XX:+UnlockDiagnosticVMOptions"
+//javaOptions in Universal += "-J-XX:+PrintInlining"
+javaOptions in Universal += "-Dproperty1=value1"
+javaOptions in Universal += "-property2=value2"
+javaOptions in Universal += s"-version=${version.value}"
+
+mainClass in (Test, run) := Some("woshilaiceshide.nnadl.Runner")

@@ -122,13 +122,30 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
     val activations = new Array[Matrix](num_layers); activations(0) = x
     val zs = new Array[Matrix](num_layers - 1)
-    val zipped = (biases zip weights)
-    zipped.length.range.map { i =>
-      val (b, w) = zipped(i)
-      val z = w.dot(activations(i)) + b
-      zs(i) = z
-      activations(i + 1) = Calc.sigmoid(z)
+
+    {
+      def ff1() = {
+        val zipped = (biases zip weights)
+        zipped.length.range.map { i =>
+          val (b, w) = zipped(i)
+          val z = w.dot(activations(i)) + b
+          zs(i) = z
+          activations(i + 1) = Calc.sigmoid(z)
+        }
+      }
+      def ff2() = {
+        var i = 0
+        while (i < biases.length) {
+          val (b, w) = (biases(i), weights(i))
+          val z = w.dot(activations(i)) + b
+          zs(i) = z
+          activations(i + 1) = Calc.sigmoid(z)
+          i = i + 1
+        }
+      }
+      ff2()
     }
+
     var delta = cost_derivative(activations.last, y) * Calc.sigmoid_prime(zs.last)
     nabla_b(nabla_b.length - 1) = delta
     nabla_w(nabla_w.length - 1) = delta.dot(activations(activations.length - 2).transpose())
@@ -149,10 +166,23 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
   }
 
   def evaluate(test_data: Array[MnistLoader.MnistRecord2]) = {
-    val test_results = test_data.map { record =>
+
+    /*
+     * val test_results = test_data.map { record =>
       (Matrix.argmax(feedforward(record.image), 0)(0), record.label)
     }
     test_results.count(x => x._1 == x._2)
+     */
+
+    var corrected = 0
+    var i = 0
+    while (i < test_data.length) {
+      val record = test_data(i)
+      if (Matrix.argmax(feedforward(record.image), 0)(0) == record.label)
+        corrected = corrected + 1
+      i = i + 1
+    }
+    corrected
   }
 
 }
