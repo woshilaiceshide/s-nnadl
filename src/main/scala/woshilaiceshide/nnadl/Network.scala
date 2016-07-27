@@ -95,7 +95,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       nabla_b = (nabla_b zip delta_nabla_b).map { x =>
         val (nb, dnb) = x
         nb + dnb
-      }.toArray
+      }
 
       nabla_w = (nabla_w zip delta_nabla_w).map { x =>
         val (nw, dnw) = x
@@ -105,13 +105,13 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
     weights = (weights zip nabla_w).map { x =>
       val (w, nw) = x
-      w - nw * (eta / mini_batch.length)
-    }.toArray
+      w - (nw * (eta / mini_batch.length))
+    }
 
     biases = (biases zip nabla_b).map { x =>
       val (b, nb) = x
-      b - nb * (eta / mini_batch.length)
-    }.toArray
+      b - (nb * (eta / mini_batch.length))
+    }
 
   }
 
