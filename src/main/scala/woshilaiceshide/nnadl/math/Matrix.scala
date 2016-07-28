@@ -237,7 +237,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     a
   }
 
-  protected def map_directly(transformer: ValueTransformer): this.type = {
+  private[nnadl] def map_directly(transformer: ValueTransformer): this.type = {
     var j = 0
     while (j < c_count) {
       var i = 0

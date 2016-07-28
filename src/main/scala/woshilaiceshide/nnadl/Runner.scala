@@ -3,9 +3,9 @@ package woshilaiceshide.nnadl
 import woshilaiceshide.nnadl.math._
 import woshilaiceshide.nnadl.util._
 
-object Runner extends App {
+import woshilaiceshide.nnadl.mnist._
 
-  import MnistLoader._
+object Runner extends App {
 
   def test_matrix() = {
     val rnd: scala.util.Random = new scala.util.Random()
@@ -27,39 +27,11 @@ object Runner extends App {
   def test_network() = {
 
     //println(new Network(Array(784, 30, 10)))
-    //val network = new Network(Array(784, 30, 10)) 
+    //val network = new Network(Array(784, 30, 10))
     val network = new MultiThreadingNetwork(Array(784, 30, 10))
-    val MnistDataSet(training_data, validation_data, test_data) = TextMnistLoader.load_data_wrapper()
-    network.SGD(training_data, 1000, 30, 3.0d, test_data = Some(test_data), 4)
+    val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper()
+    network.SGD(training_data, 1000, 400, 3.0d, test_data = Some(test_data), 4)
   }
   test_network()
-
-  def test_pickle() = {
-    import java.io._
-    import net.razorvine.pickle.Unpickler
-
-    import net.razorvine.pickle.IObjectConstructor
-
-    val c = new IObjectConstructor() {
-      def construct(args: Array[Object]): Object = {
-        List[Object]()
-      }
-    }
-
-    val o = new IObjectConstructor() {
-      def construct(args: Array[Object]): Object = {
-        new Object()
-      }
-    }
-
-    val stream = new FileInputStream("""/opt/workspace/s-nnadl/data/mnist.pkl.gz""")
-    val gzip = new java.util.zip.GZIPInputStream(stream)
-    val unpickler = new Unpickler()
-    Unpickler.registerConstructor("numpy.core.multiarray", "_reconstruct", c)
-    Unpickler.registerConstructor("numpy", "dtype", o)
-    val data = unpickler.load(gzip)
-  }
-
-  //test_pickle()
 
 }

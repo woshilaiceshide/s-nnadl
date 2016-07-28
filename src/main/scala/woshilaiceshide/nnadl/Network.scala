@@ -4,6 +4,8 @@ import woshilaiceshide.nnadl.util._
 import woshilaiceshide.nnadl.util.Utility._
 import woshilaiceshide.nnadl.math._
 
+import woshilaiceshide.nnadl.mnist._
+
 object Network {}
 
 class Network(sizes: Array[Int]) {
@@ -63,11 +65,11 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
   }
 
   def SGD(
-    training_data: Array[MnistLoader.MnistRecord1],
+    training_data: Array[MnistRecord1],
     epochs: Int,
     mini_batch_size: Int,
     eta: Double,
-    test_data: Option[Array[MnistLoader.MnistRecord2]]): Unit = {
+    test_data: Option[Array[MnistRecord2]]): Unit = {
     val n = training_data.length
     epochs.range.map { j =>
       val shuffled = rnd.shuffle(training_data.toSeq).toArray
@@ -86,11 +88,11 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     }
   }
 
-  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Double) = {
+  def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double) = {
     var nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
     var nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
     mini_batch.map { x =>
-      val MnistLoader.MnistRecord1(image, label) = x
+      val MnistRecord1(image, label) = x
       val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
       nabla_b = (nabla_b zip delta_nabla_b).map { x =>
         val (nb, dnb) = x
@@ -165,7 +167,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     output_activations - y
   }
 
-  def evaluate(test_data: Array[MnistLoader.MnistRecord2]) = {
+  def evaluate(test_data: Array[MnistRecord2]) = {
     var corrected = 0
     var i = 0
     while (i < test_data.length) {

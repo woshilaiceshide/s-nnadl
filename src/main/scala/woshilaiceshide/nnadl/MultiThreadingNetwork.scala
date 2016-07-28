@@ -5,6 +5,8 @@ import woshilaiceshide.nnadl.util._
 import woshilaiceshide.nnadl.util.Utility._
 import woshilaiceshide.nnadl.math._
 
+import woshilaiceshide.nnadl.mnist._
+
 object MultiThreadingNetwork {}
 
 class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
@@ -29,11 +31,11 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
   }
 
   def SGD(
-    training_data: Array[MnistLoader.MnistRecord1],
+    training_data: Array[MnistRecord1],
     epochs: Int,
     mini_batch_size: Int,
     eta: Double,
-    test_data: Option[Array[MnistLoader.MnistRecord2]], thread_count: Int): Unit = {
+    test_data: Option[Array[MnistRecord2]], thread_count: Int): Unit = {
 
     if (thread_count <= 1) {
       SGD(training_data, epochs, mini_batch_size, eta, test_data)
@@ -86,7 +88,7 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
     }
   }
 
-  def update_mini_batch(mini_batch: Array[MnistLoader.MnistRecord1], eta: Double, workers: Array[Worker]) = {
+  def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double, workers: Array[Worker]) = {
 
     val grouped = Utility.group_array(mini_batch, workers.length)
     val medias = new Array[(Array[Matrix], Array[Matrix])](grouped.length)
@@ -102,7 +104,7 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
               var x1 = 0
               while (x1 < grouped(i).length) {
                 val x = grouped(i)(x1)
-                val MnistLoader.MnistRecord1(image, label) = x
+                val MnistRecord1(image, label) = x
                 val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
 
                 {
