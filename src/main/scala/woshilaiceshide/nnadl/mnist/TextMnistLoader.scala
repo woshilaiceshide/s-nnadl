@@ -34,21 +34,21 @@ object TextMnistLoader {
     val training_data = iterate_line_by_line("training.txt.gz") { line =>
       val Array(s0, s1) = line.split('|')
       val label = Matrix.argmax(s0.split(',').map { _.toDouble }.toArray)
-      val image = Matrix.wrap(Array(s1.split(',').map { _.toDouble }.toArray)).transpose()
+      val image = Matrix.vertical(s1.split(',').map { _.toDouble }.toArray)
       MnistRecord1(image, vectorized_result(label))
     }
 
     val validation_data = iterate_line_by_line("validation.txt.gz") { line =>
       val Array(s0, s1) = line.split('|')
       val label = s0.toDouble.toInt
-      val image = Matrix.wrap(Array(s1.split(',').map { _.toDouble }.toArray)).transpose()
+      val image = Matrix.vertical(s1.split(',').map { _.toDouble }.toArray)
       MnistRecord2(image, label)
     }
 
     val test_data = iterate_line_by_line("test.txt.gz") { line =>
       val Array(s0, s1) = line.split('|')
       val label = s0.toDouble.toInt
-      val image = Matrix.wrap(Array(s1.split(',').map { _.toDouble }.toArray)).transpose()
+      val image = Matrix.vertical(s1.split(',').map { _.toDouble }.toArray)
       MnistRecord2(image, label)
     }
 

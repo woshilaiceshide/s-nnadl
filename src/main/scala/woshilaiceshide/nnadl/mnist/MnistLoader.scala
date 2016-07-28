@@ -113,7 +113,7 @@ object MnistLoader {
     m
   }
 
-  def load_data(folder: String = default_folder): MnistRawDataSet = {
+  def load_data(factor: Double, folder: String = default_folder): MnistRawDataSet = {
 
     def find_file(f: String) = (new java.io.File(folder, f)).getAbsolutePath
 
@@ -125,7 +125,7 @@ object MnistLoader {
           result(i) = Matrix
             .wrap(tmp(i))
             .map_directly(new Matrix.ValueTransformer() {
-              def apply(v: Double): Double = 1.0d * v / 255
+              def apply(v: Double): Double = 1.0d * v / 255 / factor
             })
         }
         result
@@ -141,9 +141,9 @@ object MnistLoader {
 
   }
 
-  def load_data_wrapper(folder: String = default_folder) = {
+  def load_data_wrapper(factor: Double, folder: String = default_folder) = {
 
-    val MnistRawDataSet(tr_d, va_d, te_d) = load_data(folder)
+    val MnistRawDataSet(tr_d, va_d, te_d) = load_data(factor: Double, folder)
 
     val training_inputs = tr_d.images.map { _.transpose().reshape(784, 1) }
     val training_results = tr_d.labels.map { vectorized_result(_) }

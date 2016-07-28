@@ -19,7 +19,7 @@ object Runner extends App {
     //println(MnistLoader.load_data())
     //println(MnistLoader.vectorized_result(3))
     //println(MnistLoader.default_folder)
-    val loaded = MnistLoader.load_data_wrapper()
+    val loaded = MnistLoader.load_data_wrapper(1)
     loaded.test_data.map { _.save() }
   }
   //test_mnist()
@@ -28,9 +28,10 @@ object Runner extends App {
 
     //println(new Network(Array(784, 30, 10)))
     //val network = new Network(Array(784, 30, 10))
+    //the most rate is 96.78%
     val network = new MultiThreadingNetwork(Array(784, 30, 10))
-    val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper()
-    network.SGD(training_data, 1000, 400, 3.0d, test_data = Some(test_data), 4)
+    val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
+    network.SGD(training_data, 1000, 40, 8.0d, test_data = Some(test_data), 4)
   }
   test_network()
 
