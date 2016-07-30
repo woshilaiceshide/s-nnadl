@@ -409,6 +409,9 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     }
     this
   }
+  /**
+   * hadamard product, aka element-wise product
+   */
   def *(b: Matrix) = {
     of_the_same_dim(b)
 
