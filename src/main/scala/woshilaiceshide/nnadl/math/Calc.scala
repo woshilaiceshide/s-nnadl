@@ -42,4 +42,50 @@ object Calc {
     }
   }
 
+  def softmax(z: Array[Double]): Array[Double] = {
+    val a = new Array[Double](z.length)
+    var sum = 0.0d
+
+    {
+      var i = 0
+      while (i < a.length) {
+        a(i) = Math.exp(z(i))
+        sum = sum + a(i)
+        i = i + 1
+      }
+    }
+
+    {
+      var i = 0
+      while (i < a.length) {
+        a(i) = a(i) / sum
+        i = i + 1
+      }
+    }
+    a
+  }
+
+  def softmax(z: Array[Double], c: Double): Array[Double] = {
+    val a = new Array[Double](z.length)
+    var sum = 0.0d
+
+    {
+      var i = 0
+      while (i < a.length) {
+        a(i) = Math.exp(z(i) * c)
+        sum = sum + a(i)
+        i = i + 1
+      }
+    }
+
+    {
+      var i = 0
+      while (i < a.length) {
+        a(i) = a(i) / sum
+        i = i + 1
+      }
+    }
+    a
+  }
+
 }

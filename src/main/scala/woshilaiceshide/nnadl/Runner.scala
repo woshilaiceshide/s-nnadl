@@ -33,6 +33,13 @@ object Runner extends App {
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
     network.SGD(training_data, 1000, 40, 8.0d, test_data = Some(test_data), 4)
   }
-  test_network()
+  //test_network()
+
+  def test_addhoc() = {
+    //println(Calc.sigmoid(1 * 2 + 2))
+    println(Calc.softmax(Array(1, 2, 3)).map { _.toString }.mkString(", "))
+    println(Calc.softmax(Array(1, 2, 3), 100d).map { _.toString }.mkString(", "))
+  }
+  test_addhoc()
 
 }
