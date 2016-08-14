@@ -2,13 +2,14 @@ package woshilaiceshide.nnadl.mnist
 
 import woshilaiceshide.nnadl.math._
 import woshilaiceshide.nnadl.util.Utility._
+import woshilaiceshide.nnadl.util.ArrayUtility._
 
 import java.io._
 
 final case class MnistRawData(images: Array[Matrix], labels: Array[Int]) {
   private[nnadl] def split(howmany: Int) = {
-    val (i0, i1) = cut_array(images, howmany)
-    val (l0, l1) = cut_array(labels, howmany)
+    val (i0, i1) = images.cut_at_point(howmany)
+    val (l0, l1) = labels.cut_at_point(howmany)
     (MnistRawData(i0, l0), MnistRawData(i1, l1))
   }
 }

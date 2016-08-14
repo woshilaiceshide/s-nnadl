@@ -3,6 +3,7 @@ package woshilaiceshide.nnadl
 
 import woshilaiceshide.nnadl.util._
 import woshilaiceshide.nnadl.util.Utility._
+import woshilaiceshide.nnadl.util.ArrayUtility._
 import woshilaiceshide.nnadl.math._
 
 import woshilaiceshide.nnadl.mnist._
@@ -47,18 +48,18 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
 
       val workers = Array.fill[Worker](thread_count)(new Worker())
       workers.map { _.start() }
-      val grouped_test_data = test_data.map { x => Utility.group_array(x, workers.length) }
+      val grouped_test_data = test_data.map { x => x.cut_to_groups(workers.length) }
 
       epochs.range.map { j =>
 
         val start = System.currentTimeMillis()
 
         val shuffled = rnd.shuffle(training_data.toSeq).toArray
-        val mini_batches = 0.until(n, mini_batch_size).map { k =>
-          shuffled.slice(k, k + mini_batch_size)
-        }
+        val mini_batches = shuffled.grouped(mini_batch_size)
 
-        mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, workers) }
+        while (mini_batches.hasNext) {
+          update_mini_batch(mini_batches.next(), eta, workers)
+        }
 
         grouped_test_data match {
           case Some(grouped_test_data) if 0 == j % 5 =>
@@ -90,14 +91,14 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
 
   def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double, workers: Array[Worker]) = {
 
-    val grouped = Utility.group_array(mini_batch, workers.length)
+    val grouped = mini_batch.cut_to_groups(workers.length)
     val medias = new Array[(Array[Matrix], Array[Matrix])](grouped.length)
     val latch = new java.util.concurrent.CountDownLatch(grouped.length)
     grouped.length.range.map { i =>
       workers(i).execute(new Runnable() {
         def run() {
-          val nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
-          val nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
+          val nabla_b = zeros_with_the_same_shape(biases)
+          val nabla_w = zeros_with_the_same_shape(weights)
 
           {
             def work() = {
@@ -156,16 +157,17 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
       (b, w)
     }
 
-    weights = (weights zip nabla_w).map { x =>
-      val (w, nw) = x
-      w - (nw * (eta / mini_batch.length))
+    def learn_from_backprops() {
+      val learned_layers = sizes.length - 1
+      var i = 0
+      while (i < learned_layers) {
+        weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        biases(i).substract_directly(nabla_b(i), (eta / mini_batch.length))
+        i = i + 1
+      }
     }
 
-    biases = (biases zip nabla_b).map { x =>
-      val (b, nb) = x
-      b - (nb * (eta / mini_batch.length))
-    }
-
+    learn_from_backprops()
   }
 
 }

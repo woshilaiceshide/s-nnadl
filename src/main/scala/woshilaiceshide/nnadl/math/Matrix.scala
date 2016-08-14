@@ -334,6 +334,36 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     this
   }
 
+  def plus_directly(b: Matrix, factor: Double): Matrix = {
+    of_the_same_dim(b)
+    var i = 0
+    while (i < array.length) {
+      array(i) = array(i) + factor * b.array(i)
+      i = i + 1
+    }
+    this
+  }
+
+  def substract_directly(b: Matrix): Matrix = {
+    of_the_same_dim(b)
+    var i = 0
+    while (i < array.length) {
+      array(i) = array(i) - b.array(i)
+      i = i + 1
+    }
+    this
+  }
+
+  def substract_directly(b: Matrix, factor: Double): Matrix = {
+    of_the_same_dim(b)
+    var i = 0
+    while (i < array.length) {
+      array(i) = array(i) - factor * b.array(i)
+      i = i + 1
+    }
+    this
+  }
+
   def +(b: Matrix): Matrix = {
     of_the_same_dim(b)
 

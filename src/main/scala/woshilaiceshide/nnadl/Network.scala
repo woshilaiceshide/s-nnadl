@@ -2,6 +2,7 @@ package woshilaiceshide.nnadl
 
 import woshilaiceshide.nnadl.util._
 import woshilaiceshide.nnadl.util.Utility._
+import woshilaiceshide.nnadl.util.ArrayUtility._
 import woshilaiceshide.nnadl.math._
 
 import woshilaiceshide.nnadl.mnist._
@@ -42,14 +43,25 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
   val num_layers = sizes.length
 
-  var biases = sizes.slice(1, sizes.length).map { layer_size =>
-    Matrix.random(rnd, layer_size, 1)
-  }.toArray
+  val biases = {
+    val tmp = new Array[Matrix](sizes.length - 1)
+    var i = 1
+    while (i < sizes.length) {
+      tmp(i - 1) = Matrix.random(rnd, sizes(i), 1)
+      i = i + 1
+    }
+    tmp
+  }
 
-  var weights = (sizes.slice(0, sizes.length - 1) zip sizes.slice(1, sizes.length)).map { one =>
-    val (x, y) = one
-    Matrix.random(rnd, y, x)
-  }.toArray
+  val weights = {
+    val tmp = new Array[Matrix](sizes.length - 1)
+    var i = 1
+    while (i < sizes.length) {
+      tmp(i - 1) = Matrix.random(rnd, sizes(i), sizes(i - 1))
+      i = i + 1
+    }
+    tmp
+  }
 
   def feedforward(input: Array[Double]): Matrix = feedforward(Matrix.vertical(input))
 
@@ -72,9 +84,12 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     test_data: Option[Array[MnistRecord2]]): Unit = {
     val n = training_data.length
     epochs.range.map { j =>
+
       val shuffled = rnd.shuffle(training_data.toSeq).toArray
-      val mini_batches = 0.until(n, mini_batch_size).map { k =>
-        shuffled.slice(k, k + mini_batch_size)
+      val mini_batches = shuffled.grouped(mini_batch_size)
+
+      while (mini_batches.hasNext) {
+        update_mini_batch(mini_batches.next(), eta)
       }
 
       mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta) }
@@ -88,84 +103,104 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     }
   }
 
+  protected def zeros_with_the_same_shape(a: Array[Matrix]) = {
+    val tmp = new Array[Matrix](a.length)
+    var i = 0
+    while (i < tmp.length) {
+      tmp(i) = a(i).zeros_with_the_same_shape()
+      i = i + 1
+    }
+    tmp
+  }
+
   def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double) = {
-    var nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
-    var nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
-    mini_batch.map { x =>
-      val MnistRecord1(image, label) = x
-      val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
-      nabla_b = (nabla_b zip delta_nabla_b).map { x =>
-        val (nb, dnb) = x
-        nb + dnb
+
+    val nabla_b = zeros_with_the_same_shape(biases)
+    val nabla_w = zeros_with_the_same_shape(weights)
+
+    def collect_backprops() {
+      var i = 0
+      while (i < mini_batch.length) {
+        val x = mini_batch(i)
+        val (delta_nabla_b, delta_nabla_w) = backprop(x.image, x.label)
+
+        {
+          var j = 0
+          while (j < delta_nabla_b.length) {
+            nabla_b(j) = nabla_b(j) + delta_nabla_b(j)
+            j = j + 1
+          }
+        }
+
+        {
+          var j = 0
+          while (j < delta_nabla_w.length) {
+            nabla_w(j) = nabla_w(j) + delta_nabla_w(j)
+            j = j + 1
+          }
+        }
+
+        i = i + 1
       }
+    }
+    collect_backprops()
 
-      nabla_w = (nabla_w zip delta_nabla_w).map { x =>
-        val (nw, dnw) = x
-        nw + dnw
+    def learn_from_backprops() {
+      val learned_layers = sizes.length - 1
+      var i = 0
+      while (i < learned_layers) {
+        weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        biases(i).substract_directly(nabla_b(i), (eta / mini_batch.length))
+        i = i + 1
       }
     }
 
-    weights = (weights zip nabla_w).map { x =>
-      val (w, nw) = x
-      w - (nw * (eta / mini_batch.length))
-    }
-
-    biases = (biases zip nabla_b).map { x =>
-      val (b, nb) = x
-      b - (nb * (eta / mini_batch.length))
-    }
+    learn_from_backprops()
 
   }
 
   def backprop(x: Matrix, y: Matrix) = {
 
-    val nabla_b = biases.map { b => b.zeros_with_the_same_shape() }
-    val nabla_w = weights.map { w => w.zeros_with_the_same_shape() }
+    val nabla_b = zeros_with_the_same_shape(biases)
+    val nabla_w = zeros_with_the_same_shape(weights)
 
     val activations = new Array[Matrix](num_layers); activations(0) = x
     val zs = new Array[Matrix](num_layers - 1)
 
-    {
-      def ff1() = {
-        val zipped = (biases zip weights)
-        zipped.length.range.map { i =>
-          val (b, w) = zipped(i)
-          val z = w.dot(activations(i)) + b
-          zs(i) = z
-          activations(i + 1) = Calc.sigmoid(z)
-        }
+    def feedforward_with_details() = {
+      var i = 0
+      while (i < biases.length) {
+        val z = weights(i).dot(activations(i)) + biases(i)
+        zs(i) = z
+        activations(i + 1) = Calc.sigmoid(z)
+        i = i + 1
       }
-      def ff2() = {
-        var i = 0
-        while (i < biases.length) {
-          val (b, w) = (biases(i), weights(i))
-          val z = w.dot(activations(i)) + b
-          zs(i) = z
-          activations(i + 1) = Calc.sigmoid(z)
-          i = i + 1
-        }
+    }
+    feedforward_with_details()
+
+    val delta = cost_derivative(activations.t(0), y) * Calc.sigmoid_prime(zs.t(0))
+    nabla_b.set_t(0, delta)
+    nabla_w.set_t(0, delta.dot(activations.t(-1).transpose()))
+
+    def back() = {
+      var i = 1
+      while (i < num_layers - 1) {
+        val z = zs.t(-i)
+        val sp = Calc.sigmoid_prime(z)
+        val delta = weights.t(-i + 1).transpose().dot(nabla_b.t(-i + 1)) * sp
+
+        nabla_b.set_t(-i, delta)
+        nabla_w.set_t(-i, delta.dot(activations.t(-i - 1).transpose()))
+
+        i = i + 1
       }
-      ff2()
     }
-
-    var delta = cost_derivative(activations.last, y) * Calc.sigmoid_prime(zs.last)
-    nabla_b(nabla_b.length - 1) = delta
-    nabla_w(nabla_w.length - 1) = delta.dot(activations(activations.length - 2).transpose())
-
-    (2 until num_layers).map { l =>
-      val z = zs(zs.length - l)
-      val sp = Calc.sigmoid_prime(z)
-      delta = weights(weights.length - l + 1).transpose().dot(delta) * sp
-      nabla_b(nabla_b.length - l) = delta
-      nabla_w(nabla_w.length - l) = delta.dot(activations(activations.length - l - 1).transpose())
-    }
+    back()
 
     (nabla_b, nabla_w)
   }
 
-  def cost_derivative(output_activations: Matrix, y: Matrix) = {
-    output_activations - y
-  }
+  def cost_derivative(output_activations: Matrix, y: Matrix) = { output_activations - y }
 
   def evaluate(test_data: Array[MnistRecord2]) = {
     var corrected = 0
