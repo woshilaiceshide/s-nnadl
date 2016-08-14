@@ -54,12 +54,10 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
 
         val start = System.currentTimeMillis()
 
-        val shuffled = rnd.shuffle(training_data.toSeq).toArray
-        val mini_batches = shuffled.grouped(mini_batch_size)
+        val shuffled = training_data.shuffle_directly(rnd)
+        val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
 
-        while (mini_batches.hasNext) {
-          update_mini_batch(mini_batches.next(), eta, workers)
-        }
+        mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, workers) }
 
         grouped_test_data match {
           case Some(grouped_test_data) if 0 == j % 5 =>

@@ -17,6 +17,90 @@ object ArrayUtility extends ArrayUtility {
     def t(i: Int) = a(a.length - 1 + i)
     def set_t(i: Int, t: T) = { a(a.length - 1 + i) = t }
 
+    def shuffle_directly(rnd: scala.util.Random) = {
+      def swap(i1: Int, i2: Int) {
+        val tmp = a(i1)
+        a(i1) = a(i2)
+        a(i2) = tmp
+      }
+
+      var i = a.length
+      while (i > 1) {
+        val k = rnd.nextInt(i)
+        swap(i - 1, k)
+        i = i - 1
+      }
+
+      a
+    }
+
+    def iterate_with_fixed_group(size: Int, op: Array[T] => Unit)(implicit ct: scala.reflect.ClassTag[T]) = {
+      assert(size > 0)
+      val s = a.length / size
+      val m = a.length % size
+
+      if (m == 0) {
+        def work() = {
+          var i = 0
+          while (i < s) {
+            val tmp = new Array[T](size)
+            System.arraycopy(a, i * size, tmp, 0, tmp.length)
+            op(tmp)
+            i = i + 1
+          }
+        }
+        work()
+      } else {
+        def work() = {
+          var i = 0
+          while (i < s) {
+            val tmp = new Array[T](size)
+            System.arraycopy(a, i * size, tmp, 0, tmp.length)
+            op(tmp)
+            i = i + 1
+          }
+          val tmp = new Array[T](m)
+          System.arraycopy(a, i * size, tmp, 0, tmp.length)
+          op(tmp)
+        }
+        work()
+      }
+    }
+
+    def grouped_with_fixed_size(size: Int)(implicit ct: scala.reflect.ClassTag[T]) = {
+      assert(size > 0)
+      val s = a.length / size
+      val m = a.length % size
+
+      if (m == 0) {
+        def work() = {
+          val tmp = new Array[Array[T]](s)
+          var i = 0
+          while (i < tmp.length) {
+            tmp(i) = new Array[T](size)
+            System.arraycopy(a, i * size, tmp(i), 0, tmp(i).length)
+            i = i + 1
+          }
+          tmp
+        }
+        work()
+      } else {
+        def work() = {
+          val tmp = new Array[Array[T]](s + 1)
+          var i = 0
+          while (i < tmp.length - 1) {
+            tmp(i) = new Array[T](size)
+            System.arraycopy(a, i * size, tmp(i), 0, tmp(i).length)
+            i = i + 1
+          }
+          tmp(i) = new Array[T](m)
+          System.arraycopy(a, i * size, tmp(i), 0, tmp(i).length)
+          tmp
+        }
+        work()
+      }
+    }
+
     def cut_at_point(cut_point: Int)(implicit ct: scala.reflect.ClassTag[T]) = {
       if (a.length <= cut_point) {
         (a, new Array[T](0))

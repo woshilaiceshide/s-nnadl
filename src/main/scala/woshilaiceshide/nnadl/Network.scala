@@ -11,6 +11,9 @@ object Network {}
 
 class Network(sizes: Array[Int]) {
 
+  protected implicit val CLASSTAG_DOUBLE = scala.reflect.ClassTag.Double
+  protected implicit val CLASSTAG_MATRIX = scala.reflect.ClassTag(classOf[Matrix])
+
   assert(sizes.length >= 2)
 
   import Network._
@@ -85,20 +88,19 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     val n = training_data.length
     epochs.range.map { j =>
 
-      val shuffled = rnd.shuffle(training_data.toSeq).toArray
-      val mini_batches = shuffled.grouped(mini_batch_size)
+      val start = System.currentTimeMillis()
 
-      while (mini_batches.hasNext) {
-        update_mini_batch(mini_batches.next(), eta)
-      }
-
+      val shuffled = training_data.shuffle_directly(rnd)
+      val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
       mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta) }
 
       test_data match {
-        case Some(test_data) =>
-          println(s"""Epoch ${j}: ${evaluate(test_data)} / ${test_data.length}""")
-        case None =>
-          println(s"""Epoch ${j} complete""")
+        case Some(test_data) if j % 5 == 0 =>
+          val end = System.currentTimeMillis()
+          println(s"""Epoch ${j}: ${end - start}ms ${evaluate(test_data)} / ${test_data.length}""")
+        case _ =>
+          val end = System.currentTimeMillis()
+          println(s"""Epoch ${j}: ${end - start}ms completed""")
       }
     }
   }
