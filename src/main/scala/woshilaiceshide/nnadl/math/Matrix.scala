@@ -142,8 +142,24 @@ class Line(retriever: Line.Retriever, val length: Int, val is_row: Boolean) {
     a
   }
 
-  def map[T](f: Double => T): IndexedSeq[T] = {
-    length.range.map { x => f(retriever(x)) }
+  def map[T: scala.reflect.ClassTag](f: Double => T): Array[T] = {
+    val a = new Array[T](length)
+    var i = 0
+    while (i < length) {
+      a(i) = f(retriever(i))
+      i = i + 1
+    }
+    a
+  }
+
+  def map(f: Double => Double): Array[Double] = {
+    val a = new Array[Double](length)
+    var i = 0
+    while (i < length) {
+      a(i) = f(retriever(i))
+      i = i + 1
+    }
+    a
   }
 
   override def toString() = format("")
@@ -153,16 +169,16 @@ class Line(retriever: Line.Retriever, val length: Int, val is_row: Boolean) {
     import java.text._
     val formatter = new DecimalFormat("#0.000")
 
-    def format(d: Double) = {
+    def formatd(d: Double) = {
       if (d >= 0) s""" ${formatter.format(d)}"""
       else s"""${formatter.format(d)}"""
     }
 
     if (is_row) {
-      s"""${margin}[${map { format }.mkString(", ")}]"""
+      s"""${margin}[${map { x => formatd(x) }.mkString(", ")}]"""
     } else {
       length.range.map { x =>
-        s"""|${format(retriever(x))}|"""
+        s"""|${formatd(retriever(x))}|"""
       }.map { margin + _ }.mkString(System.lineSeparator())
     }
   }
@@ -217,7 +233,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     tmp
   }
 
-  def map_row[T: scala.reflect.ClassTag](f: LineIterator[T]) = {
+  def map_row[T: scala.reflect.ClassTag](f: LineIterator[T]): Array[T] = {
     val a = new Array[T](r_count)
     var i = 0
     while (i < a.length) {
@@ -227,8 +243,28 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     a
   }
 
-  def map_column[T: scala.reflect.ClassTag](f: LineIterator[T]) = {
+  def map_row(f: LineIterator[Double]): Array[Double] = {
+    val a = new Array[Double](r_count)
+    var i = 0
+    while (i < a.length) {
+      a(i) = f(i, row(i))
+      i = i + 1
+    }
+    a
+  }
+
+  def map_column[T: scala.reflect.ClassTag](f: LineIterator[T]): Array[T] = {
     val a = new Array[T](c_count)
+    var j = 0
+    while (j < a.length) {
+      a(j) = f(j, column(j))
+      j = j + 1
+    }
+    a
+  }
+
+  def map_column(f: LineIterator[Double]): Array[Double] = {
+    val a = new Array[Double](c_count)
     var j = 0
     while (j < a.length) {
       a(j) = f(j, column(j))
