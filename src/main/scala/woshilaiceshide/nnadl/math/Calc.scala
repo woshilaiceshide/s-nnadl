@@ -58,6 +58,22 @@ object Calc {
     }
   }
 
+  def tanh_prime(z: Double): Double = { val tmp = Math.cosh(z); 1 / (tmp * tmp) }
+  def tanh_prime(z: Array[Double]): Array[Double] = {
+    val a = new Array[Double](z.length)
+    var i = 0
+    while (i < a.length) {
+      a(i) = tanh_prime(z(i))
+      i = i + 1
+    }
+    a
+  }
+  def tanh_prime(z: Matrix): Matrix = {
+    z.map {
+      new CrossTransformer() { def apply(i: Int, j: Int, v: Double) = tanh_prime(v) }
+    }
+  }
+
   def softmax(z: Array[Double]): Array[Double] = {
     val a = new Array[Double](z.length)
     var sum = 0.0d
