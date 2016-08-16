@@ -4,6 +4,27 @@ object Calc {
 
   import Matrix._
 
+  def nan_to_num(d: Double): Double = d match {
+    case Double.NegativeInfinity => Double.MinValue
+    case Double.PositiveInfinity => Double.MaxValue
+    case x if x.isNaN => 0.0
+    case x => x
+  }
+  def nan_to_num(d: Array[Double]): Array[Double] = {
+    val a = new Array[Double](d.length)
+    var i = 0
+    while (i < a.length) {
+      a(i) = nan_to_num(d(i))
+      i = i + 1
+    }
+    a
+  }
+  def nan_to_num(z: Matrix): Matrix = {
+    z.map {
+      new CrossTransformer() { def apply(i: Int, j: Int, v: Double) = nan_to_num(v) }
+    }
+  }
+
   /**
    * The sigmoid function
    */

@@ -20,6 +20,13 @@ object Matrix {
       def apply(i: Int, j: Int, v: Double): Double = rnd.nextGaussian()
     })
 
+  def random(rnd: scala.util.Random, r: Int, c: Int, defactor: Double): Matrix = apply(
+    r,
+    c,
+    new CrossTransformer() {
+      def apply(i: Int, j: Int, v: Double): Double = rnd.nextGaussian() / defactor
+    })
+
   def vertical(a: Array[Double]): Matrix = {
     val array = new Array[Double](a.length)
     System.arraycopy(a, 0, array, 0, a.length)
@@ -112,6 +119,7 @@ object Matrix {
   }
 
   trait LineIterator[T] { def apply(line_number: Int, line: Line): T }
+  trait LineIteratorD { def apply(line_number: Int, line: Line): Double }
   private val ARGMAX_LINE_ITERATOR = new LineIterator[Int] {
     def apply(line_number: Int, line: Line): Int = argmax(line)
   }
@@ -243,7 +251,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     a
   }
 
-  def map_row(f: LineIterator[Double]): Array[Double] = {
+  def map_row(f: LineIteratorD): Array[Double] = {
     val a = new Array[Double](r_count)
     var i = 0
     while (i < a.length) {
@@ -263,7 +271,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     a
   }
 
-  def map_column(f: LineIterator[Double]): Array[Double] = {
+  def map_column(f: LineIteratorD): Array[Double] = {
     val a = new Array[Double](c_count)
     var j = 0
     while (j < a.length) {
