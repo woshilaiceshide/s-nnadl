@@ -13,9 +13,11 @@ object MnistLoader {
 
   val default_folder = (new File(System.getProperty("user.dir"), "data")).getAbsolutePath
 
-  val file_t10_images = """t10k-images-idx3-ubyte.gz"""
+  val file_t10_images_gz = """t10k-images-idx3-ubyte.gz"""
+  val file_t10_images = """t10k-images.idx3-ubyte"""
   val file_t10_labels = """t10k-labels-idx1-ubyte.gz"""
-  val file_train_images = """train-images-idx3-ubyte.gz"""
+  val file_train_images_gz = """train-images-idx3-ubyte.gz"""
+  val file_train_images = """train-images.idx3-ubyte"""
   val file_train_labels = """train-labels-idx1-ubyte.gz"""
 
   private def read_int_with_msb(stream: InputStream) = {
@@ -45,32 +47,44 @@ object MnistLoader {
    *
    * Pixels are organized row-wise. Pixel values are 0 to 255. 0 means background (white), 255 means foreground (black).
    */
-  def read_images(path: String) = {
-    using(new FileInputStream(path)) { input =>
-      using(new GZIPInputStream(input, 4096 * 1024)) { gzip =>
+  def read_images(path: String, gzipped: Boolean = false) = {
 
-        def next_int() = read_int_with_msb(gzip)
-        def next_byte() = read_unsigned_byte(gzip)
+    def read(input_stream: InputStream) = {
+      def next_int() = read_int_with_msb(input_stream)
+      def next_byte() = read_unsigned_byte(input_stream)
 
-        val ROW_COUNT = 28
-        val COLUMN_COUNT = 28
+      val ROW_COUNT = 28
+      val COLUMN_COUNT = 28
 
-        assert(2051 == next_int())
-        val number_of_images = next_int()
-        assert(ROW_COUNT == next_int())
-        assert(COLUMN_COUNT == next_int())
+      assert(2051 == next_int())
+      val number_of_images = next_int()
+      assert(ROW_COUNT == next_int())
+      assert(COLUMN_COUNT == next_int())
 
-        val images = new Array[Array[Array[Int]]](number_of_images)
-        images.length.range.map { x =>
-          val image = new Array[Array[Int]](ROW_COUNT)
-          image.length.range.map { i =>
-            val row = new Array[Int](COLUMN_COUNT)
-            row.length.range.map { j => row(j) = next_byte() }
-            image(i) = row
-          }
-          images(x) = image
+      val images = new Array[Array[Array[Int]]](number_of_images)
+      images.length.range.map { x =>
+        val image = new Array[Array[Int]](ROW_COUNT)
+        image.length.range.map { i =>
+          val row = new Array[Int](COLUMN_COUNT)
+          row.length.range.map { j => row(j) = next_byte() }
+          image(i) = row
         }
-        images
+        images(x) = image
+      }
+      images
+    }
+
+    if (gzipped) {
+      using(new FileInputStream(path)) { input =>
+        using(new GZIPInputStream(input, 4096 * 1024)) { gzip =>
+          read(gzip)
+        }
+      }
+    } else {
+      using(new FileInputStream(path)) { input =>
+        using(new BufferedInputStream(input, 4096 * 1024)) { gzip =>
+          read(gzip)
+        }
       }
     }
   }
