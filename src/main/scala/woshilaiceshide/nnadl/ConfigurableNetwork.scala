@@ -58,9 +58,10 @@ object ConfigurableNetwork {
 
   case class Configurator(
       rnd: scala.util.Random = new scala.util.Random(),
-      weights_initializer: WeightsInitializer,
+      weights_initializer: WeightsInitializer = DefaultWeightsInitializer,
       cost_function: CostFunction = new CrossEntropyCostFunction(SigmoidActivationFunction),
-      activation_function: ActivationFunction = SigmoidActivationFunction) {
+      activation_function: ActivationFunction = SigmoidActivationFunction,
+      lambda: Double) {
 
     def initialize_weights(r_count: Int, c_count: Int) = weights_initializer.initialize_weights(rnd, r_count, c_count)
 
@@ -155,10 +156,10 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
       val shuffled = training_data.shuffle_directly(rnd)
       val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
-      mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta) }
+      mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, training_data.length) }
 
       test_data match {
-        case Some(test_data) if j % 5 == 0 =>
+        case Some(test_data) if j % 1 == 0 =>
           val end = System.currentTimeMillis()
           println(s"""Epoch ${j}: ${end - start}ms ${evaluate(test_data)} / ${test_data.length}""")
         case _ =>
@@ -178,7 +179,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     tmp
   }
 
-  def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double) = {
+  def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double, n: Int) = {
 
     val nabla_b = zeros_with_the_same_shape(biases)
     val nabla_w = zeros_with_the_same_shape(weights)
@@ -214,7 +215,8 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       val learned_layers = sizes.length - 1
       var i = 0
       while (i < learned_layers) {
-        weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        //weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        weights(i).multiple_directly(1 - eta * (lambda / n)).substract_directly(nabla_w(i), (eta / mini_batch.length))
         biases(i).substract_directly(nabla_b(i), (eta / mini_batch.length))
         i = i + 1
       }

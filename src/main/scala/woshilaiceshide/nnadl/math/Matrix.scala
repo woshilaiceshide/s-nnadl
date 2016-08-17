@@ -483,6 +483,15 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     }
     this
   }
+
+  def multiple_directly(d: Double) = {
+    var i = 0
+    while (i < array.length) {
+      array(i) = array(i) * d
+      i = i + 1
+    }
+    this
+  }
   /**
    * hadamard product, aka element-wise product
    */

@@ -31,9 +31,20 @@ object Runner extends App {
     //the most rate is 96.78%
     val network = new MultiThreadingNetwork(Array(784, 30, 10))
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
-    network.SGD(training_data, 1000, 40, 8.0d, test_data = Some(test_data), 4)
+    network.SGD(training_data, 1000, 40, 8.0d, test_data = Some(test_data), 1)
   }
-  test_network()
+  //test_network()
+
+  def test_configurable_network() = {
+
+    //println(new Network(Array(784, 30, 10)))
+    //val network = new Network(Array(784, 30, 10))
+    //the most rate is 96.78%
+    val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
+    val network = new ConfigurableNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(lambda = 1))
+    network.SGD(training_data.take(training_data.length), 1000, 10, 1.0d, test_data = Some(test_data))
+  }
+  test_configurable_network()
 
   def test_addhoc() = {
 
@@ -49,6 +60,10 @@ object Runner extends App {
       i + 1
     }
     val b = a.map { x => add1(x) }
+
+    val t = Matrix.random(new scala.util.Random(), 2, 2)
+    println(t)
+    println(t * 1.0d)
 
   }
   test_addhoc()
