@@ -7,7 +7,7 @@ object Calc {
   def nan_to_num(d: Double): Double = d match {
     case Double.NegativeInfinity => Double.MinValue
     case Double.PositiveInfinity => Double.MaxValue
-    case x if x.isNaN => 0.0
+    case x if x.isNaN => 0.0d
     case x => x
   }
   def nan_to_num(d: Array[Double]): Array[Double] = {
@@ -79,7 +79,7 @@ object Calc {
     }
   }
 
-  def tanh_prime(z: Double): Double = { val tmp = Math.cosh(z); 1 / (tmp * tmp) }
+  def tanh_prime(z: Double): Double = { 1 / Math.pow(Math.cosh(z), 2) }
   def tanh_prime(z: Array[Double]): Array[Double] = {
     val a = new Array[Double](z.length)
     var i = 0
@@ -138,6 +138,41 @@ object Calc {
         i = i + 1
       }
     }
+    a
+  }
+
+  def softmax(z: Matrix, c: Double): Matrix = {
+
+    val a = z.zeros_with_the_same_shape()
+
+    {
+      var j = 0
+      while (j < z.c_count) {
+
+        var sum = 0.0d
+
+        {
+          var i = 0
+          while (i < z.r_count) {
+            val tmp = Math.exp(z(i)(j) * c)
+            a.update(i, j, tmp)
+            sum = sum + tmp
+            i = i + 1
+          }
+        }
+
+        {
+          var i = 0
+          while (i < z.r_count) {
+            a.update(i, j, a(i)(j) / sum)
+            i = i + 1
+          }
+        }
+
+        j = j + 1
+      }
+    }
+
     a
   }
 

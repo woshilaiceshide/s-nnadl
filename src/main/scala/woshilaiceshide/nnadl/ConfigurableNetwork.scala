@@ -21,10 +21,46 @@ object ConfigurableNetwork {
     def initialize_weights(rnd: scala.util.Random, r_count: Int, c_count: Int) = Matrix.random(rnd, r_count, c_count, Math.sqrt(r_count))
   }
 
+  trait ActivationFunction {
+    def activate(z: Matrix): Matrix
+    def prime(z: Matrix): Matrix
+  }
+
+  object SigmoidActivationFunction extends ActivationFunction {
+    def activate(z: Matrix): Matrix = Calc.sigmoid(z)
+    def prime(z: Matrix): Matrix = Calc.sigmoid_prime(z)
+  }
+
+  object TanhActivationFunction extends ActivationFunction {
+    def activate(z: Matrix): Matrix = Calc.tanh(z)
+    def prime(z: Matrix): Matrix = Calc.tanh_prime(z)
+  }
+
+  object LinearActivationFunction extends ActivationFunction {
+    def activate(z: Matrix): Matrix = z
+    def prime(z: Matrix): Matrix = z.map(new Matrix.ValueTransformer { def apply(v: Double): Double = 1.0d })
+  }
+
+  object SoftmaxActivationFunction extends ActivationFunction {
+    def activate(z: Matrix): Matrix = Calc.softmax(z, 1)
+    def prime(z: Matrix): Matrix = z.map(new Matrix.ValueTransformer { def apply(v: Double): Double = 1.0d })
+  }
+
+  trait CostFunction {
+    //1. positive; 2. smaller if 'a' is closer to 'y', zero if 'a' is equal to 'y'
+    def calc(a: Matrix, y: Matrix): Matrix
+    //provides ∂C/∂z
+    def delta(z: Matrix, a: Matrix, y: Matrix): Matrix
+    //the activation function used on the output layer
+    def final_activation_function: ActivationFunction
+
+  }
+
   case class Configurator(
       rnd: scala.util.Random = new scala.util.Random(),
       weights_initializer: WeightsInitializer,
-      cost_function: CostFunction) {
+      cost_function: CostFunction = new CrossEntropyCostFunction(SigmoidActivationFunction),
+      activation_function: ActivationFunction = SigmoidActivationFunction) {
 
     def initialize_weights(r_count: Int, c_count: Int) = weights_initializer.initialize_weights(rnd, r_count, c_count)
 
@@ -35,6 +71,8 @@ object ConfigurableNetwork {
 import ConfigurableNetwork._
 
 class ConfigurableNetwork(sizes: Array[Int], configurator: Configurator) {
+
+  import configurator._
 
   protected implicit val CLASSTAG_DOUBLE = scala.reflect.ClassTag.Double
   protected implicit val CLASSTAG_MATRIX = scala.reflect.ClassTag(classOf[Matrix])
@@ -71,7 +109,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     val tmp = new Array[Matrix](sizes.length - 1)
     var i = 1
     while (i < sizes.length) {
-      tmp(i - 1) = configurator.initialize_weights(sizes(i), 1)
+      tmp(i - 1) = initialize_weights(sizes(i), 1)
       i = i + 1
     }
     tmp
@@ -81,7 +119,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     val tmp = new Array[Matrix](sizes.length - 1)
     var i = 1
     while (i < sizes.length) {
-      tmp(i - 1) = configurator.initialize_weights(sizes(i), sizes(i - 1))
+      tmp(i - 1) = initialize_weights(sizes(i), sizes(i - 1))
       i = i + 1
     }
     tmp
@@ -92,11 +130,15 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
   def feedforward(input: Matrix): Matrix = {
     var a = input
     var i = 0
-    while (i < biases.length) {
+    while (i < biases.length - 1) {
       val b = biases(i); val w = weights(i)
-      a = Calc.sigmoid(w.dot(a) + b)
+      a = activation_function.activate(w.dot(a) + b)
       i = i + 1
     }
+
+    val b = biases(i); val w = weights(i)
+    a = cost_function.final_activation_function.activate(w.dot(a) + b)
+
     a
   }
 
@@ -111,7 +153,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
       val start = System.currentTimeMillis()
 
-      val shuffled = training_data.shuffle_directly(configurator.rnd)
+      val shuffled = training_data.shuffle_directly(rnd)
       val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
       mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta) }
 
@@ -192,16 +234,20 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
     def feedforward_with_details() = {
       var i = 0
-      while (i < biases.length) {
+      while (i < biases.length - 1) {
         val z = weights(i).dot(activations(i)) + biases(i)
         zs(i) = z
-        activations(i + 1) = Calc.sigmoid(z)
+        activations(i + 1) = activation_function.activate(z)
         i = i + 1
       }
+
+      val z = weights(i).dot(activations(i)) + biases(i)
+      zs(i) = z
+      activations(i + 1) = cost_function.final_activation_function.activate(z)
     }
     feedforward_with_details()
 
-    val delta = configurator.cost_function.delta(zs.t(0), activations.t(0), y)
+    val delta = cost_function.delta(zs.t(0), activations.t(0), y)
     nabla_b.set_t(0, delta)
     nabla_w.set_t(0, delta.dot(activations.t(-1).transpose()))
 
@@ -209,8 +255,8 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       var i = 1
       while (i < num_layers - 1) {
         val z = zs.t(-i)
-        val sp = Calc.sigmoid_prime(z)
-        val delta = weights.t(-i + 1).transpose().dot(nabla_b.t(-i + 1)) * sp
+        val zp = activation_function.prime(z)
+        val delta = weights.t(-i + 1).transpose().dot(nabla_b.t(-i + 1)) * zp
 
         nabla_b.set_t(-i, delta)
         nabla_w.set_t(-i, delta.dot(activations.t(-i - 1).transpose()))
@@ -222,8 +268,6 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
     (nabla_b, nabla_w)
   }
-
-  def cost_derivative(output_activations: Matrix, y: Matrix) = { output_activations - y }
 
   def evaluate(test_data: Array[MnistRecord2]) = {
     var corrected = 0

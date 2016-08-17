@@ -1,16 +1,13 @@
 package woshilaiceshide.nnadl
 
 import woshilaiceshide.nnadl.math._
+import ConfigurableNetwork._
 
-trait CostFunction {
-
-  def calc(a: Matrix, y: Matrix): Matrix
-  //∂C/∂z
-  def delta(z: Matrix, a: Matrix, y: Matrix): Matrix
-
-}
-
-object QuadraticCostFunction extends CostFunction {
+/**
+ * use the quadratic cost when neurons in the output layer are linear, so the learning will not slow down.
+ * if sigmoid neurons are used in the output layer, then it will slow down.
+ */
+class QuadraticCostFunction(val final_activation_function: ActivationFunction = LinearActivationFunction) extends CostFunction {
 
   def calc(a: Matrix, y: Matrix): Matrix = {
     val mapped = a.map_column(new Matrix.LineIteratorD() {
@@ -37,12 +34,12 @@ object QuadraticCostFunction extends CostFunction {
         aa - yy
       }
     })
-    prime_to_a * Calc.sigmoid_prime(z)
+    prime_to_a * final_activation_function.prime(z)
   }
 
 }
 
-object CrossEntropyCostFunction extends CostFunction {
+class CrossEntropyCostFunction(val final_activation_function: ActivationFunction) extends CostFunction {
 
   def calc(a: Matrix, y: Matrix): Matrix = {
     val mapped = a.map_column(new Matrix.LineIteratorD() {
@@ -56,6 +53,40 @@ object CrossEntropyCostFunction extends CostFunction {
           i = i + 1
         }
         sum
+      }
+    })
+    Matrix.horizontal(mapped)
+  }
+
+  def delta(z: Matrix, a: Matrix, y: Matrix): Matrix = {
+    a.map(new Matrix.CrossTransformer() {
+      def apply(i: Int, j: Int, v: Double): Double = {
+        val aa = v
+        val yy = y(i)(0)
+        aa - yy
+      }
+    })
+  }
+
+}
+
+object SoftmaxCostFunction extends CostFunction {
+
+  //it should be softmax always
+  val final_activation_function: ActivationFunction = SoftmaxActivationFunction
+
+  def calc(a: Matrix, y: Matrix): Matrix = {
+    val mapped = a.map_column(new Matrix.LineIteratorD() {
+      def apply(line_number: Int, line: Line): Double = {
+        var sum = 0.0d
+        var i = 0
+        while (i < line.length) {
+          val aa = line(i)
+          val yy = y(i)(0)
+          sum = sum + Calc.nan_to_num(-1.0d * yy * Math.log(aa))
+          i = i + 1
+        }
+        sum / 2
       }
     })
     Matrix.horizontal(mapped)

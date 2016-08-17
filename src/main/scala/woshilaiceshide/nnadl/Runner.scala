@@ -39,8 +39,8 @@ object Runner extends App {
 
     import ArrayUtility._
     //println(Calc.sigmoid(1 * 2 + 2))
-    println(Calc.softmax(Array(1, 2, 3)).map { _.toString }.mkString(", "))
-    println(Calc.softmax(Array(1, 2, 3), 100d).map { _.toString }.mkString(", "))
+    println(Calc.softmax(Array(1d, 2d, 3d)).map { _.toString }.mkString(", "))
+    println(Calc.softmax(Array(1d, 2d, 3d), 100d).map { _.toString }.mkString(", "))
 
     val a = Array(1, 2, 3)
     def add1(i: Int) = {
