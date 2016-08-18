@@ -1,5 +1,6 @@
 package woshilaiceshide.nnadl.mnist
 
+import woshilaiceshide.nnadl._
 import woshilaiceshide.nnadl.math._
 import woshilaiceshide.nnadl.util.Utility._
 import woshilaiceshide.nnadl.util.ArrayUtility._
@@ -15,8 +16,7 @@ final case class MnistRawData(images: Array[Matrix], labels: Array[Int]) {
 }
 final case class MnistRawDataSet(training_data: MnistRawData, validation_data: MnistRawData, test_data: MnistRawData)
 
-final case class MnistRecord1(image: Matrix, label: Matrix)
-final case class MnistRecord2(image: Matrix, label: Int) {
+final case class MnistRecord(image: Matrix, label: Int) {
   def save() = {
 
     import java.awt.Point
@@ -34,4 +34,13 @@ final case class MnistRecord2(image: Matrix, label: Int) {
     ImageIO.write(jimage, "jpg", output)
   }
 }
-final case class MnistDataSet(training_data: Array[MnistRecord1], validation_data: Array[MnistRecord2], test_data: Array[MnistRecord2])
+
+object MnistRecord {
+
+  def apply(nrecord: NRecord) = {
+    new MnistRecord(nrecord.x, nrecord.y.column(0).find(1))
+  }
+
+}
+
+final case class MnistDataSet(training_data: Array[NRecord], validation_data: Array[NRecord], test_data: Array[NRecord])

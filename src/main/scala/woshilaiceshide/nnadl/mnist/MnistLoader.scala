@@ -3,6 +3,7 @@ package woshilaiceshide.nnadl.mnist
 import java.io._
 import java.util.zip._
 
+import woshilaiceshide.nnadl._
 import woshilaiceshide.nnadl.math._
 import woshilaiceshide.nnadl.util.Utility._
 
@@ -161,13 +162,15 @@ object MnistLoader {
 
     val training_inputs = tr_d.images.map { _.transpose().reshape(784, 1) }
     val training_results = tr_d.labels.map { vectorized_result(_) }
-    val training_data = (training_inputs zip training_results).map { x => MnistRecord1(x._1, x._2) }
+    val training_data = (training_inputs zip training_results).map { x => NRecord(x._1, x._2) }
 
     val validation_inputs = va_d.images.map { _.transpose().reshape(784, 1) }
-    val validation_data = (validation_inputs zip va_d.labels).map { x => MnistRecord2(x._1, x._2) }
+    val validation_results = va_d.labels.map { vectorized_result(_) }
+    val validation_data = (validation_inputs zip validation_results).map { x => NRecord(x._1, x._2) }
 
     val test_inputs = te_d.images.map { _.transpose().reshape(784, 1) }
-    val test_data = (test_inputs zip te_d.labels).map { x => MnistRecord2(x._1, x._2) }
+    val test_results = te_d.labels.map { vectorized_result(_) }
+    val test_data = (test_inputs zip test_results).map { x => NRecord(x._1, x._2) }
 
     MnistDataSet(training_data, validation_data, test_data)
   }

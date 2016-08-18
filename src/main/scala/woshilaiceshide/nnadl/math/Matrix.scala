@@ -145,6 +145,20 @@ class Line(retriever: Line.Retriever, val length: Int, val is_row: Boolean) {
 
   def apply(i: Int) = retriever(i)
 
+  def find(d: Double) = {
+    var i = 0
+    var found = -1
+    while (i < length) {
+      if (this(i) == d) {
+        found = i
+        i = Integer.MAX_VALUE
+      } else {
+        i = i + 1
+      }
+    }
+    found
+  }
+
   def toArray(a: Array[Double] = new Array(length)) = {
     length.range.map { x => a(x) = retriever(x) }
     a

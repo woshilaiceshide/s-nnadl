@@ -32,11 +32,11 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
   }
 
   def SGD(
-    training_data: Array[MnistRecord1],
+    training_data: Array[NRecord],
     epochs: Int,
     mini_batch_size: Int,
     eta: Double,
-    test_data: Option[Array[MnistRecord2]], thread_count: Int): Unit = {
+    test_data: Option[Array[NRecord]], thread_count: Int): Unit = {
 
     if (thread_count <= 1) {
       SGD(training_data, epochs, mini_batch_size, eta, test_data)
@@ -87,7 +87,7 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
     }
   }
 
-  def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double, workers: Array[Worker]) = {
+  def update_mini_batch(mini_batch: Array[NRecord], eta: Double, workers: Array[Worker]) = {
 
     val grouped = mini_batch.cut_to_groups(workers.length)
     val medias = new Array[(Array[Matrix], Array[Matrix])](grouped.length)
@@ -103,7 +103,7 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
               var x1 = 0
               while (x1 < grouped(i).length) {
                 val x = grouped(i)(x1)
-                val MnistRecord1(image, label) = x
+                val NRecord(image, label) = x
                 val (delta_nabla_b, delta_nabla_w) = backprop(image, label)
 
                 {

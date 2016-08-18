@@ -51,6 +51,10 @@ libraryDependencies += "com.jolbox" % "bonecp" % "0.8.0.RELEASE"
 
 libraryDependencies += "org.scalanlp" %% "breeze" % "0.11.2"
 
+libraryDependencies += "com.twelvemonkeys.imageio" % "imageio-core" % "3.2.1"
+libraryDependencies += "com.twelvemonkeys.imageio" % "imageio-jpeg" % "3.2.1"
+libraryDependencies += "com.twelvemonkeys.common" % "common-lang" % "3.2.1"
+
 retrieveManaged := false
 
 enablePlugins(JavaAppPackaging)

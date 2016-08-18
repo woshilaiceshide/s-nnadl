@@ -80,11 +80,11 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
   }
 
   def SGD(
-    training_data: Array[MnistRecord1],
+    training_data: Array[NRecord],
     epochs: Int,
     mini_batch_size: Int,
     eta: Double,
-    test_data: Option[Array[MnistRecord2]]): Unit = {
+    test_data: Option[Array[NRecord]]): Unit = {
     val n = training_data.length
     epochs.range.map { j =>
 
@@ -115,7 +115,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     tmp
   }
 
-  def update_mini_batch(mini_batch: Array[MnistRecord1], eta: Double) = {
+  def update_mini_batch(mini_batch: Array[NRecord], eta: Double) = {
 
     val nabla_b = zeros_with_the_same_shape(biases)
     val nabla_w = zeros_with_the_same_shape(weights)
@@ -124,7 +124,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       var i = 0
       while (i < mini_batch.length) {
         val x = mini_batch(i)
-        val (delta_nabla_b, delta_nabla_w) = backprop(x.image, x.label)
+        val (delta_nabla_b, delta_nabla_w) = backprop(x.x, x.y)
 
         {
           var j = 0
@@ -204,12 +204,13 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
   def cost_derivative(output_activations: Matrix, y: Matrix) = { output_activations - y }
 
-  def evaluate(test_data: Array[MnistRecord2]) = {
+  def evaluate(test_data: Array[NRecord]) = {
     var corrected = 0
     var i = 0
     while (i < test_data.length) {
       val record = test_data(i)
-      if (Matrix.argmax(feedforward(record.image), 0)(0) == record.label)
+      val digital = Matrix.argmax(feedforward(record.x), 0)(0)
+      if (1 == record.y(digital)(0))
         corrected = corrected + 1
       i = i + 1
     }

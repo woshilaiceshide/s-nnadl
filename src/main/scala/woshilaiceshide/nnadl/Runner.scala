@@ -20,7 +20,7 @@ object Runner extends App {
     //println(MnistLoader.vectorized_result(3))
     //println(MnistLoader.default_folder)
     val loaded = MnistLoader.load_data_wrapper(1)
-    loaded.test_data.map { _.save() }
+    loaded.test_data.map { x => MnistRecord(x).save() }
   }
   //test_mnist()
 
