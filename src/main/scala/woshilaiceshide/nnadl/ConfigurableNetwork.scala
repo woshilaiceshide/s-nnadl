@@ -71,7 +71,7 @@ object ConfigurableNetwork {
 
 import ConfigurableNetwork._
 
-class ConfigurableNetwork(sizes: Array[Int], configurator: Configurator) {
+class ConfigurableNetwork(sizes: Array[Int], val configurator: Configurator) {
 
   import configurator._
 
@@ -269,6 +269,35 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     back()
 
     (nabla_b, nabla_w)
+  }
+
+  def total_cost(data: Array[NRecord]) = {
+
+    var cost = 0.0d
+    var i = 0
+    while (i < data.length) {
+      val dn = data(i)
+      val a = feedforward(dn.x)
+      cost = cost + cost_function.calc(a, dn.y).row(0).sum / data.length
+      i = i + 1
+    }
+
+    val r = 0.5 * (configurator.lambda / data.length) * weights.map { m =>
+      var sum = 0.0d
+      var i = 0
+      while (i < m.r_count) {
+        var j = 0
+        while (j < m.c_count) {
+          sum = sum + Math.pow(m(i)(j), 2)
+          j = j + 1
+        }
+        i = i + 1
+      }
+      sum
+    }.sum
+
+    cost + r
+
   }
 
   def evaluate(test_data: Array[NRecord]) = {

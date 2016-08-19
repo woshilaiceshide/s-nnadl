@@ -10,7 +10,11 @@ import woshilaiceshide.nnadl.mnist._
 
 object MultiThreadingNetwork {}
 
-class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
+import ConfigurableNetwork._
+
+class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) extends ConfigurableNetwork(sizes, configurator) {
+
+  import configurator._
 
   private val STOP_SIGNAL = new Runnable() { def run() {} }
 
@@ -54,10 +58,10 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
 
         val start = System.currentTimeMillis()
 
-        val shuffled = training_data.shuffle_directly(rnd)
+        val shuffled = training_data.shuffle_directly(configurator.rnd)
         val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
 
-        mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, workers) }
+        mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, training_data.length, workers) }
 
         grouped_test_data match {
           case Some(grouped_test_data) if 0 == j % 5 =>
@@ -87,7 +91,7 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
     }
   }
 
-  def update_mini_batch(mini_batch: Array[NRecord], eta: Double, workers: Array[Worker]) = {
+  def update_mini_batch(mini_batch: Array[NRecord], eta: Double, n: Int, workers: Array[Worker]) = {
 
     val grouped = mini_batch.cut_to_groups(workers.length)
     val medias = new Array[(Array[Matrix], Array[Matrix])](grouped.length)
@@ -159,7 +163,8 @@ class MultiThreadingNetwork(sizes: Array[Int]) extends Network(sizes) {
       val learned_layers = sizes.length - 1
       var i = 0
       while (i < learned_layers) {
-        weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        //weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        weights(i).multiple_directly(1 - eta * (lambda / n)).substract_directly(nabla_w(i), (eta / mini_batch.length))
         biases(i).substract_directly(nabla_b(i), (eta / mini_batch.length))
         i = i + 1
       }

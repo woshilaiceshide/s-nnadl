@@ -184,6 +184,16 @@ class Line(retriever: Line.Retriever, val length: Int, val is_row: Boolean) {
     a
   }
 
+  def sum: Double = {
+    var tmp = 0.0d
+    var i = 0
+    while (i < length) {
+      tmp = tmp + retriever(i)
+      i = i + 1
+    }
+    tmp
+  }
+
   override def toString() = format("")
 
   def format(margin: String) = {

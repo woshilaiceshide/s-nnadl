@@ -29,7 +29,7 @@ object Runner extends App {
     //println(new Network(Array(784, 30, 10)))
     //val network = new Network(Array(784, 30, 10))
     //the most rate is 96.78%
-    val network = new MultiThreadingNetwork(Array(784, 30, 10))
+    val network = new MultiThreadingNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(lambda = 1))
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
     network.SGD(training_data, 1000, 40, 8.0d, test_data = Some(test_data), 1)
   }
