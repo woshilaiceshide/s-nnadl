@@ -112,7 +112,8 @@ object ConfigurableNetwork {
       weights_initializer: WeightsInitializer = DefaultWeightsInitializer,
       cost_function: CostFunction = new CrossEntropyCostFunction(SigmoidActivationFunction),
       activation_function: ActivationFunction = SigmoidActivationFunction,
-      regularization: Regularization) {
+      regularization: Regularization,
+      dropout_proportion: Option[Double] = None) {
 
     def initialize_weights(r_count: Int, c_count: Int) = weights_initializer.initialize_weights(rnd, r_count, c_count)
 
@@ -157,7 +158,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
   val num_layers = sizes.length
 
-  val biases = {
+  protected var biases = {
     val tmp = new Array[Matrix](sizes.length - 1)
     var i = 1
     while (i < sizes.length) {
@@ -167,7 +168,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     tmp
   }
 
-  val weights = {
+  protected var weights = {
     val tmp = new Array[Matrix](sizes.length - 1)
     var i = 1
     while (i < sizes.length) {
@@ -194,6 +195,110 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     a
   }
 
+  private var weights_without_dropout: Array[Matrix] = _
+  private var biases_without_dropout: Array[Matrix] = _
+  private var dropout_filters: Array[Matrix] = _
+
+  protected def dropout(proportion: Double, rnd: scala.util.Random): Unit = {
+
+    val lefts = new Array[Array[Int]](weights.length - 1)
+
+    {
+      var i = 0
+      while (i < weights.length - 1) {
+
+        val a = weights(i)
+        val dropped_count = (a.r_count * proportion).toInt
+        val left = a.r_count.range.toArray.shuffle_directly(rnd).drop(dropped_count).sorted
+        lefts(i) = left
+        i = i + 1
+      }
+    }
+
+    def copy(a: Matrix, left: Array[Int]) = {
+      val b = Matrix(left.length, a.c_count)
+      b.map_directly(new Matrix.CrossTransformer() {
+        def apply(i: Int, j: Int, v: Double): Double = {
+          a(left(i))(j)
+        }
+      })
+      b
+    }
+
+    val weights1 = new Array[Matrix](weights.length)
+    val biases1 = new Array[Matrix](biases.length)
+
+    {
+      var i = 0
+      while (i < weights.length - 1) {
+        val a = weights(i)
+        weights1(i) = copy(weights(i), lefts(i))
+        biases1(i) = copy(biases(i), lefts(i))
+        i = i + 1
+      }
+
+      weights1(weights1.length - 1) = weights.t(0)
+      biases1(biases1.length - 1) = biases.t(0)
+    }
+
+    val filters = new Array[Matrix](lefts.length)
+
+    {
+      var i = 0
+      while (i < filters.length) {
+        val filter = Matrix(weights(i).r_count, 1)
+        lefts(i).foreach { x => filter.update(x, 0, 1.0d) }
+        filters(i) = filter
+        i = i + 1
+      }
+    }
+
+    weights_without_dropout = weights
+    biases_without_dropout = biases
+
+    weights = weights1
+    biases = biases1
+
+    dropout_filters = filters
+
+  }
+
+  protected def merge_dropout(): Unit = {
+
+    def merge_matrix(a: Matrix, b: Matrix, filter: Matrix): Matrix = {
+
+      assert(filter.c_count == 1)
+      assert(filter.r_count == a.r_count)
+      assert(a.c_count == b.c_count)
+      val filter1 = filter.column(0)
+      var i = 0
+      var merged_row = 0
+      while (i < filter1.length) {
+        if (1.0d == filter1(i)) {
+          var j = 0
+          while (j < a.c_count) {
+            a.update(i, j, b(merged_row)(j))
+            j = j + 1
+          }
+          merged_row = merged_row + 1
+        }
+        i = i + 1
+      }
+      a
+    }
+
+    var i = 0
+    while (i < dropout_filters.length) {
+      weights(i) = merge_matrix(weights_without_dropout(i), weights(i), dropout_filters(i))
+      biases(i) = merge_matrix(biases_without_dropout(i), biases(i), dropout_filters(i))
+      i = i + 1
+    }
+
+    weights_without_dropout = null
+    biases_without_dropout = null
+    dropout_filters = null
+  }
+
   def SGD(
     training_data: Array[NRecord],
     epochs: Int,
@@ -207,7 +312,16 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
       val shuffled = training_data.shuffle_directly(rnd)
       val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
-      mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, training_data.length) }
+      mini_batches.map { mini_batch =>
+        dropout_proportion match {
+          case Some(dp) => {
+            dropout(dp, rnd)
+            update_mini_batch(mini_batch, eta, training_data.length)
+            merge_dropout()
+          }
+          case None => update_mini_batch(mini_batch, eta, training_data.length)
+        }
+      }
 
       test_data match {
         case Some(test_data) if j % 1 == 0 =>

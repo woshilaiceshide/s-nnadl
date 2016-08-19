@@ -61,7 +61,16 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
         val shuffled = training_data.shuffle_directly(configurator.rnd)
         val mini_batches = shuffled.grouped_with_fixed_size(mini_batch_size)
 
-        mini_batches.map { mini_batch => update_mini_batch(mini_batch, eta, training_data.length, workers) }
+        mini_batches.map { mini_batch =>
+          dropout_proportion match {
+            case Some(dp) => {
+              dropout(dp, rnd)
+              update_mini_batch(mini_batch, eta, training_data.length, workers)
+              merge_dropout()
+            }
+            case None => update_mini_batch(mini_batch, eta, training_data.length, workers)
+          }
+        }
 
         grouped_test_data match {
           case Some(grouped_test_data) if 0 == j % 5 =>

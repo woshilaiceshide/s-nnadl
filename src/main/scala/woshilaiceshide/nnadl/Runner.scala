@@ -29,7 +29,7 @@ object Runner extends App {
     //println(new Network(Array(784, 30, 10)))
     //val network = new Network(Array(784, 30, 10))
     //the most rate is 96.78%
-    val network = new MultiThreadingNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(regularization = new ConfigurableNetwork.L2Regularization(lambda = 1)))
+    val network = new MultiThreadingNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.3d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 1)))
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
     network.SGD(training_data, 1000, 40, 8.0d, test_data = Some(test_data), 1)
   }
@@ -41,10 +41,10 @@ object Runner extends App {
     //val network = new Network(Array(784, 30, 10))
     //the most rate is 96.78%
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(10)
-    val network = new ConfigurableNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(regularization = new ConfigurableNetwork.L2Regularization(lambda = 1)))
+    val network = new ConfigurableNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.3d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 1)))
     network.SGD(training_data.take(training_data.length), 1000, 10, 1.0d, test_data = Some(test_data))
   }
-  //test_configurable_network()
+  test_configurable_network()
 
   def test_addhoc() = {
 
@@ -67,6 +67,6 @@ object Runner extends App {
 
     println(Math.signum(6.31123d))
   }
-  test_addhoc()
+  //test_addhoc()
 
 }

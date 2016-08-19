@@ -305,7 +305,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     a
   }
 
-  private[nnadl] def map_directly(transformer: ValueTransformer): this.type = {
+  def map_directly(transformer: ValueTransformer): this.type = {
     var j = 0
     while (j < c_count) {
       var i = 0
@@ -318,7 +318,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     this
   }
 
-  protected def map_directly(transformer: CrossTransformer): this.type = {
+  def map_directly(transformer: CrossTransformer): this.type = {
     var j = 0
     while (j < c_count) {
       var i = 0
