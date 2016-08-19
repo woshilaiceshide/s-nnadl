@@ -53,6 +53,57 @@ object ConfigurableNetwork {
     def delta(z: Matrix, a: Matrix, y: Matrix): Matrix
     //the activation function used on the output layer
     def final_activation_function: ActivationFunction
+  }
+
+  trait Regularization {
+    def calc(weights: Array[Matrix], n: Int): Double
+    def prime(w: Matrix, n: Int): Matrix
+  }
+
+  class L2Regularization(val lambda: Double) extends Regularization {
+
+    def calc(weights: Array[Matrix], n: Int): Double = {
+      val sum = weights.map { m =>
+        var sum = 0.0d
+        var i = 0
+        while (i < m.r_count) {
+          var j = 0
+          while (j < m.c_count) {
+            sum = sum + Math.pow(m(i)(j), 2)
+            j = j + 1
+          }
+          i = i + 1
+        }
+        sum
+      }.sum
+      (lambda / n) * (sum / 2)
+    }
+    def prime(w: Matrix, n: Int): Matrix = {
+      w * (lambda / n)
+    }
+
+  }
+  class L1Regularization(val lambda: Double) extends Regularization {
+
+    def calc(weights: Array[Matrix], n: Int): Double = {
+      val sum = weights.map { m =>
+        var sum = 0.0d
+        var i = 0
+        while (i < m.r_count) {
+          var j = 0
+          while (j < m.c_count) {
+            sum = sum + Math.abs(m(i)(j))
+            j = j + 1
+          }
+          i = i + 1
+        }
+        sum
+      }.sum
+      (lambda / n) * sum
+    }
+    def prime(w: Matrix, n: Int): Matrix = {
+      Calc.sign(w, lambda / n)
+    }
 
   }
 
@@ -61,7 +112,7 @@ object ConfigurableNetwork {
       weights_initializer: WeightsInitializer = DefaultWeightsInitializer,
       cost_function: CostFunction = new CrossEntropyCostFunction(SigmoidActivationFunction),
       activation_function: ActivationFunction = SigmoidActivationFunction,
-      lambda: Double) {
+      regularization: Regularization) {
 
     def initialize_weights(r_count: Int, c_count: Int) = weights_initializer.initialize_weights(rnd, r_count, c_count)
 
@@ -179,7 +230,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     tmp
   }
 
-  def update_mini_batch(mini_batch: Array[NRecord], eta: Double, n: Int) = {
+  protected def update_mini_batch(mini_batch: Array[NRecord], eta: Double, n: Int) = {
 
     val nabla_b = zeros_with_the_same_shape(biases)
     val nabla_w = zeros_with_the_same_shape(weights)
@@ -216,7 +267,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       var i = 0
       while (i < learned_layers) {
         //weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
-        weights(i).multiple_directly(1 - eta * (lambda / n)).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        weights(i).substract_directly(regularization.prime(weights(i), n), eta).substract_directly(nabla_w(i), (eta / mini_batch.length))
         biases(i).substract_directly(nabla_b(i), (eta / mini_batch.length))
         i = i + 1
       }
@@ -282,20 +333,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       i = i + 1
     }
 
-    val r = 0.5 * (configurator.lambda / data.length) * weights.map { m =>
-      var sum = 0.0d
-      var i = 0
-      while (i < m.r_count) {
-        var j = 0
-        while (j < m.c_count) {
-          sum = sum + Math.pow(m(i)(j), 2)
-          j = j + 1
-        }
-        i = i + 1
-      }
-      sum
-    }.sum
-
+    val r = regularization.calc(weights, data.length)
     cost + r
 
   }

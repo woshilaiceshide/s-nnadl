@@ -4,6 +4,32 @@ object Calc {
 
   import Matrix._
 
+  def sign(d: Double): Double = {
+    Math.signum(d)
+  }
+
+  def sign(d: Array[Double]): Array[Double] = {
+    val a = new Array[Double](d.length)
+    var i = 0
+    while (i < a.length) {
+      a(i) = sign(d(i))
+      i = i + 1
+    }
+    a
+  }
+
+  def sign(d: Matrix): Matrix = {
+    d.map(new Matrix.ValueTransformer() {
+      def apply(v: Double): Double = sign(v)
+    })
+  }
+
+  def sign(d: Matrix, factor: Double): Matrix = {
+    d.map(new Matrix.ValueTransformer() {
+      def apply(v: Double): Double = sign(v) * factor
+    })
+  }
+
   def nan_to_num(d: Double): Double = d match {
     case Double.NegativeInfinity => Double.MinValue
     case Double.PositiveInfinity => Double.MaxValue

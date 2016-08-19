@@ -164,7 +164,7 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
       var i = 0
       while (i < learned_layers) {
         //weights(i).substract_directly(nabla_w(i), (eta / mini_batch.length))
-        weights(i).multiple_directly(1 - eta * (lambda / n)).substract_directly(nabla_w(i), (eta / mini_batch.length))
+        weights(i).substract_directly(regularization.prime(weights(i), n), eta).substract_directly(nabla_w(i), (eta / mini_batch.length))
         biases(i).substract_directly(nabla_b(i), (eta / mini_batch.length))
         i = i + 1
       }
