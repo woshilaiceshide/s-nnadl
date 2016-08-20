@@ -238,6 +238,64 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     }.map { margin + _ }.mkString(System.lineSeparator())
   }
 
+  def shift_row(count: Int): Matrix = {
+    val a = Matrix(r_count, c_count)
+    if (count == 0) {
+      a.map_directly(new Matrix.CrossTransformer() { def apply(i: Int, j: Int, v: Double): Double = { Matrix.this(i)(j) } })
+    } else if (count > 0) {
+      var i = 0
+      while (i < r_count - count) {
+        var j = 0
+        while (j < c_count) {
+          a.update(i, j, this(i + count)(j))
+          j = j + 1
+        }
+        i = i + 1
+      }
+      a
+    } else {
+      var i = -count
+      while (i < r_count) {
+        var j = 0
+        while (j < c_count) {
+          a.update(i, j, this(i + count)(j))
+          j = j + 1
+        }
+        i = i + 1
+      }
+      a
+    }
+  }
+
+  def shift_column(count: Int): Matrix = {
+    val a = Matrix(r_count, c_count)
+    if (count == 0) {
+      a.map_directly(new Matrix.CrossTransformer() { def apply(i: Int, j: Int, v: Double): Double = { Matrix.this(i)(j) } })
+    } else if (count > 0) {
+      var j = 0
+      while (j < c_count - count) {
+        var i = 0
+        while (i < r_count) {
+          a.update(i, j, this(i)(j + count))
+          i = i + 1
+        }
+        j = j + 1
+      }
+      a
+    } else {
+      var j = -count
+      while (j < c_count) {
+        var i = 0
+        while (i < r_count) {
+          a.update(i, j, this(i)(j + count))
+          i = i + 1
+        }
+        j = j + 1
+      }
+      a
+    }
+  }
+
   /**
    * Note: rows/columns could be reordered and duplicated.
    *

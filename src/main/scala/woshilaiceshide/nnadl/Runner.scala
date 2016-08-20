@@ -22,9 +22,19 @@ object Runner extends App {
   //test_mnist()
 
   def test_network() = {
-    val network = new MultiThreadingNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.3d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 0.1d)))
+    val network = new MultiThreadingNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.04d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 1)))
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(1)
-    network.SGD(training_data, 5000, 40, 0.3d, test_data = Some(test_data), 4)
+    val expanded_training_data = training_data ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_row(+1).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_row(-1).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_row(+2).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_row(-2).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_column(+1).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_column(-1).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_column(+2).reshape(784, 1), r.y) } ++
+      training_data.map { r => NRecord(r.x.reshape(28, 28).shift_column(-2).reshape(784, 1), r.y) }
+
+    network.SGD(expanded_training_data, 8000, 100, 3d, test_data = Some(test_data), 4)
   }
   test_network()
 
