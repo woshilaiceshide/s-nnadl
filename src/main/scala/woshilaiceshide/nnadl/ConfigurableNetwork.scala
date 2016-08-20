@@ -197,11 +197,13 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
   private var weights_without_dropout: Array[Matrix] = _
   private var biases_without_dropout: Array[Matrix] = _
-  private var dropout_filters: Array[Matrix] = _
+  private var dropout_filters: Array[Array[Int]] = _
 
   protected def dropout(proportion: Double, rnd: scala.util.Random): Unit = {
 
-    val lefts = new Array[Array[Int]](weights.length - 1)
+    assert(weights.length > 1)
+
+    val filters = new Array[Array[Int]](weights.length - 1)
 
     {
       var i = 0
@@ -209,20 +211,10 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
         val a = weights(i)
         val dropped_count = (a.r_count * proportion).toInt
-        val left = a.r_count.range.toArray.shuffle_directly(rnd).drop(dropped_count).sorted
-        lefts(i) = left
+        val filter = a.r_count.range.toArray.shuffle_directly(rnd).drop(dropped_count).sorted
+        filters(i) = filter
         i = i + 1
       }
-    }
-
-    def copy(a: Matrix, left: Array[Int]) = {
-      val b = Matrix(left.length, a.c_count)
-      b.map_directly(new Matrix.CrossTransformer() {
-        def apply(i: Int, j: Int, v: Double): Double = {
-          a(left(i))(j)
-        }
-      })
-      b
     }
 
     val weights1 = new Array[Matrix](weights.length)
@@ -230,27 +222,20 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
     {
       var i = 0
+
+      weights1(i) = weights(i).drop_row(filters(i))
+      biases1(i) = biases(i).drop_row(filters(i))
+      i = i + 1
+
       while (i < weights.length - 1) {
-        val a = weights(i)
-        weights1(i) = copy(weights(i), lefts(i))
-        biases1(i) = copy(biases(i), lefts(i))
+        weights1(i) = weights(i).drop(filters(i), filters(i - 1))
+        biases1(i) = biases(i).drop_row(filters(i))
         i = i + 1
       }
 
-      weights1(weights1.length - 1) = weights.t(0)
-      biases1(biases1.length - 1) = biases.t(0)
-    }
+      weights1(i) = weights(i).drop_column(filters(i - 1))
+      biases1(i) = biases(i)
 
-    val filters = new Array[Matrix](lefts.length)
-
-    {
-      var i = 0
-      while (i < filters.length) {
-        val filter = Matrix(weights(i).r_count, 1)
-        lefts(i).foreach { x => filter.update(x, 0, 1.0d) }
-        filters(i) = filter
-        i = i + 1
-      }
     }
 
     weights_without_dropout = weights
@@ -265,33 +250,24 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
 
   protected def merge_dropout(): Unit = {
 
-    def merge_matrix(a: Matrix, b: Matrix, filter: Matrix): Matrix = {
+    assert(weights.length > 1)
+    assert(dropout_filters != null)
 
-      assert(filter.c_count == 1)
-      assert(filter.r_count == a.r_count)
-      assert(a.c_count == b.c_count)
-      val filter1 = filter.column(0)
+    {
       var i = 0
-      var merged_row = 0
-      while (i < filter1.length) {
-        if (1.0d == filter1(i)) {
-          var j = 0
-          while (j < a.c_count) {
-            a.update(i, j, b(merged_row)(j))
-            j = j + 1
-          }
-          merged_row = merged_row + 1
-        }
+
+      weights(i) = weights_without_dropout(i).merge_row(weights(i), dropout_filters(i))
+      biases(i) = biases_without_dropout(i).merge_row(biases(i), dropout_filters(i))
+      i = i + 1
+
+      while (i < weights.length - 1) {
+        weights(i) = weights_without_dropout(i).merge(weights(i), dropout_filters(i), dropout_filters(i - 1))
+        biases(i) = biases_without_dropout(i).merge_row(biases(i), dropout_filters(i))
         i = i + 1
       }
-      a
-    }
 
-    var i = 0
-    while (i < dropout_filters.length) {
-      weights(i) = merge_matrix(weights_without_dropout(i), weights(i), dropout_filters(i))
-      biases(i) = merge_matrix(biases_without_dropout(i), biases(i), dropout_filters(i))
-      i = i + 1
+      weights(i) = weights_without_dropout(i).merge_column(weights(i), dropout_filters(i - 1))
+      biases(i) = biases_without_dropout(i)
     }
 
     weights_without_dropout = null
@@ -315,16 +291,16 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       mini_batches.map { mini_batch =>
         dropout_proportion match {
           case Some(dp) => {
-            dropout(dp, rnd)
+            if (weights.length > 1) dropout(dp, rnd)
             update_mini_batch(mini_batch, eta, training_data.length)
-            merge_dropout()
+            if (weights.length > 1) merge_dropout()
           }
           case None => update_mini_batch(mini_batch, eta, training_data.length)
         }
       }
 
       test_data match {
-        case Some(test_data) if j % 1 == 0 =>
+        case Some(test_data) if j % 5 == 0 =>
           val end = System.currentTimeMillis()
           println(s"""Epoch ${j}: ${end - start}ms ${evaluate(test_data)} / ${test_data.length}""")
         case _ =>

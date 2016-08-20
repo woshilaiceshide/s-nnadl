@@ -238,6 +238,110 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     }.map { margin + _ }.mkString(System.lineSeparator())
   }
 
+  /**
+   * Note: rows/columns could be reordered and duplicated.
+   *
+   * @param left, these rows will be left, others will be dropped out.
+   */
+  def drop_row(left: Array[Int]): Matrix = {
+    val a = Matrix(left.length, this.c_count)
+    var i = 0
+    while (i < left.length) {
+      val current_row = left(i)
+      var j = 0
+      while (j < this.c_count) {
+        a.update(i, j, this(current_row)(j))
+        j = j + 1
+      }
+      i = i + 1
+    }
+    a
+  }
+
+  def merge_row(b: Matrix, left: Array[Int]): Matrix = {
+    var i = 0
+    while (i < left.length) {
+      val current_row = left(i)
+      var j = 0
+      while (j < this.c_count) {
+        this.update(current_row, j, b(i)(j))
+        j = j + 1
+      }
+      i = i + 1
+    }
+    this
+  }
+
+  /**
+   * Note: rows/columns could be reordered and duplicated.
+   *
+   * @param left, these columns will be left, others will be dropped out.
+   */
+  def drop_column(left: Array[Int]): Matrix = {
+    val a = Matrix(this.r_count, left.length)
+    var j = 0
+    while (j < left.length) {
+      val current_column = left(j)
+      var i = 0
+      while (i < this.r_count) {
+        a.update(i, j, this(i)(current_column))
+        i = i + 1
+      }
+      j = j + 1
+    }
+    a
+  }
+
+  def merge_column(b: Matrix, left: Array[Int]): Matrix = {
+    var j = 0
+    while (j < left.length) {
+      val current_column = left(j)
+      var i = 0
+      while (i < this.r_count) {
+        this.update(i, current_column, b(i)(j))
+        i = i + 1
+      }
+      j = j + 1
+    }
+    this
+  }
+
+  /**
+   * Note: rows/columns could be reordered and duplicated.
+   *
+   * @param left, these rows will be left, others will be dropped out.
+   */
+  def drop(r_left: Array[Int], c_left: Array[Int]): Matrix = {
+    val a = Matrix(r_left.length, c_left.length)
+    var i = 0
+    while (i < r_left.length) {
+      val current_row = r_left(i)
+      var j = 0
+      while (j < this.c_count) {
+        val current_column = c_left(j)
+        a.update(i, j, this(current_row)(current_column))
+        j = j + 1
+      }
+      i = i + 1
+    }
+    a
+  }
+
+  def merge(b: Matrix, r_left: Array[Int], c_left: Array[Int]): Matrix = {
+    var i = 0
+    while (i < r_left.length) {
+      val current_row = r_left(i)
+      var j = 0
+      while (j < this.c_count) {
+        val current_column = c_left(j)
+        this.update(current_row, current_column, b(i)(j))
+        j = j + 1
+      }
+      i = i + 1
+    }
+    this
+  }
+
   def dim = (r_count, c_count)
 
   def column(j: Int): Line = {

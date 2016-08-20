@@ -64,9 +64,9 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
         mini_batches.map { mini_batch =>
           dropout_proportion match {
             case Some(dp) => {
-              dropout(dp, rnd)
+              if (weights.length > 1) dropout(dp, rnd)
               update_mini_batch(mini_batch, eta, training_data.length, workers)
-              merge_dropout()
+              if (weights.length > 1) merge_dropout()
             }
             case None => update_mini_batch(mini_batch, eta, training_data.length, workers)
           }
