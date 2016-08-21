@@ -56,13 +56,14 @@ object ConfigurableNetwork {
   }
 
   trait Regularization {
-    def calc(weights: Array[Matrix], n: Int): Double
+    def lambda: Double
+    def calc(weights: Array[Matrix], n: Int, lambda: Option[Double] = None): Double
     def prime(weight: Matrix, n: Int): Matrix
   }
 
   class L2Regularization(val lambda: Double) extends Regularization {
 
-    def calc(weights: Array[Matrix], n: Int): Double = {
+    def calc(weights: Array[Matrix], n: Int, lambda: Option[Double]): Double = {
       val sum = weights.map { m =>
         var sum = 0.0d
         var i = 0
@@ -76,7 +77,7 @@ object ConfigurableNetwork {
         }
         sum
       }.sum
-      (lambda / n) * (sum / 2)
+      (lambda.getOrElse(this.lambda) / n) * (sum / 2)
     }
     def prime(weight: Matrix, n: Int): Matrix = {
       weight * (lambda / n)
@@ -85,7 +86,7 @@ object ConfigurableNetwork {
   }
   class L1Regularization(val lambda: Double) extends Regularization {
 
-    def calc(weights: Array[Matrix], n: Int): Double = {
+    def calc(weights: Array[Matrix], n: Int, lambda: Option[Double]): Double = {
       val sum = weights.map { m =>
         var sum = 0.0d
         var i = 0
@@ -99,7 +100,7 @@ object ConfigurableNetwork {
         }
         sum
       }.sum
-      (lambda / n) * sum
+      (lambda.getOrElse(this.lambda) / n) * sum
     }
     def prime(weight: Matrix, n: Int): Matrix = {
       Calc.sign(weight, lambda / n)
@@ -412,7 +413,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     (nabla_b, nabla_w)
   }
 
-  def total_cost(data: Array[NRecord]) = {
+  def total_cost(data: Array[NRecord], lambda: Option[Double] = None) = {
 
     var cost = 0.0d
     var i = 0
@@ -423,7 +424,7 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
       i = i + 1
     }
 
-    val r = regularization.calc(weights, data.length)
+    val r = regularization.calc(weights, data.length, lambda)
     cost + r
 
   }

@@ -54,6 +54,9 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
       workers.map { _.start() }
       val grouped_test_data = test_data.map { x => x.cut_to_groups(workers.length) }
 
+      var prev_accuracy = 0.0d
+      var eta1 = eta
+
       epochs.range.map { j =>
 
         val start = System.currentTimeMillis()
@@ -65,15 +68,20 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
           dropout_proportion match {
             case Some(dp) => {
               if (weights.length > 1) dropout(dp, rnd)
-              update_mini_batch(mini_batch, eta, training_data.length, workers)
+              update_mini_batch(mini_batch, eta1, training_data.length, workers)
               if (weights.length > 1) merge_dropout()
             }
-            case None => update_mini_batch(mini_batch, eta, training_data.length, workers)
+            case None => update_mini_batch(mini_batch, eta1, training_data.length, workers)
           }
         }
 
+        val training_cost = total_cost(training_data)
+        val test_cost = test_data.map { x => total_cost(x, Some(configurator.regularization.lambda / training_data.length * x.length)) }.getOrElse(-1.0d)
+
+        println(s"""training_cost: ${training_cost}, test_cost: ${test_cost}""")
+
         grouped_test_data match {
-          case Some(grouped_test_data) if 0 == j % 5 =>
+          case Some(grouped_test_data) if 0 == j % 1 =>
             val medias = new Array[Int](grouped_test_data.length)
             val latch = new java.util.concurrent.CountDownLatch(grouped_test_data.length)
             grouped_test_data.length.range.map { i =>
@@ -89,7 +97,11 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
             }
             latch.await()
             val end = System.currentTimeMillis()
-            println(s"""Epoch ${j}: ${end - start}ms ${medias.reduce(_ + _)} / ${n_test}""")
+            val corrected = medias.reduce(_ + _)
+            val accuracy = 1.0d * corrected / n_test
+            if (accuracy <= prev_accuracy) eta1 = eta / 2
+            prev_accuracy = accuracy
+            println(s"""Epoch ${j}: ${end - start}ms ${corrected} / ${n_test}""")
           case _ =>
             val end = System.currentTimeMillis()
             println(s"""Epoch ${j}: ${end - start}ms completed""")
