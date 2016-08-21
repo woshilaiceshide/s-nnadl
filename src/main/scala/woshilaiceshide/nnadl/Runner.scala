@@ -22,7 +22,7 @@ object Runner extends App {
   //test_mnist()
 
   def test_network() = {
-    val network = new MultiThreadingNetwork(Array(784, 30, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.04d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 1)))
+    val network = new MultiThreadingNetwork(Array(784, 30, 20, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.04d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 100)))
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(1)
     val expanded_training_data = training_data ++
       training_data.map { r => NRecord(r.x.reshape(28, 28).shift_row(+1).reshape(784, 1), r.y) } ++
@@ -51,17 +51,13 @@ object Runner extends App {
     println(Calc.softmax(Array(1d, 2d, 3d)).map { _.toString }.mkString(", "))
     println(Calc.softmax(Array(1d, 2d, 3d), 100d).map { _.toString }.mkString(", "))
 
-    val a = Array(1, 2, 3)
-    def add1(i: Int) = {
-
-      println(i)
-      i + 1
-    }
-    val b = a.map { x => add1(x) }
-
     val t = Matrix.random(new scala.util.Random(), 2, 2)
     println(t)
     println(t * 1.0d)
+    println(t.shift_column(-1))
+    println(t.shift_column(+1))
+    println(t.shift_row(-1))
+    println(t.shift_row(+1))
 
     println(Math.signum(6.31123d))
   }

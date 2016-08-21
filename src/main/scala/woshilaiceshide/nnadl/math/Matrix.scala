@@ -375,7 +375,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     while (i < r_left.length) {
       val current_row = r_left(i)
       var j = 0
-      while (j < this.c_count) {
+      while (j < c_left.length) {
         val current_column = c_left(j)
         a.update(i, j, this(current_row)(current_column))
         j = j + 1
@@ -390,7 +390,7 @@ class Matrix protected[math] (val r_count: Int, val c_count: Int, private val ar
     while (i < r_left.length) {
       val current_row = r_left(i)
       var j = 0
-      while (j < this.c_count) {
+      while (j < c_left.length) {
         val current_column = c_left(j)
         this.update(current_row, current_column, b(i)(j))
         j = j + 1
