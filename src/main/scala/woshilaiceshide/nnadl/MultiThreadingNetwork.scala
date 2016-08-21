@@ -77,7 +77,6 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
 
         val training_cost = total_cost(training_data)
         val test_cost = test_data.map { x => total_cost(x, Some(configurator.regularization.lambda / training_data.length * x.length)) }.getOrElse(-1.0d)
-
         println(s"""training_cost: ${training_cost}, test_cost: ${test_cost}""")
 
         grouped_test_data match {
@@ -99,7 +98,7 @@ class MultiThreadingNetwork(sizes: Array[Int], configurator: Configurator) exten
             val end = System.currentTimeMillis()
             val corrected = medias.reduce(_ + _)
             val accuracy = 1.0d * corrected / n_test
-            if (accuracy <= prev_accuracy) eta1 = eta / 2
+            if (accuracy <= prev_accuracy) eta1 = eta / eta_defactor
             prev_accuracy = accuracy
             println(s"""Epoch ${j}: ${end - start}ms ${corrected} / ${n_test}""")
           case _ =>

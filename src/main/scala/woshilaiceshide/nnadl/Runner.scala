@@ -22,7 +22,10 @@ object Runner extends App {
   //test_mnist()
 
   def test_network() = {
-    val network = new MultiThreadingNetwork(Array(784, 30, 20, 10), ConfigurableNetwork.Configurator(dropout_proportion = Some(0.05d), regularization = new ConfigurableNetwork.L2Regularization(lambda = 36d)))
+    val network = new MultiThreadingNetwork(Array(784, 30, 20, 10), ConfigurableNetwork.Configurator(
+      eta_defactor = 2.0d,
+      dropout_proportion = Some(0.05d),
+      regularization = new ConfigurableNetwork.L2Regularization(lambda = 45d)))
     val MnistDataSet(training_data, validation_data, test_data) = MnistLoader.load_data_wrapper(1)
     val expanded_training_data = training_data ++
       training_data.map { r => NRecord(r.x.reshape(28, 28).shift_row(+1).reshape(784, 1), r.y) } ++

@@ -114,7 +114,8 @@ object ConfigurableNetwork {
       cost_function: CostFunction = new CrossEntropyCostFunction(SigmoidActivationFunction),
       activation_function: ActivationFunction = SigmoidActivationFunction,
       regularization: Regularization,
-      dropout_proportion: Option[Double] = None) {
+      dropout_proportion: Option[Double] = None,
+      eta_defactor: Double = 1) {
 
     def initialize_weights(r_count: Int, c_count: Int) = weights_initializer.initialize_weights(rnd, r_count, c_count)
 
@@ -283,6 +284,10 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
     eta: Double,
     test_data: Option[Array[NRecord]]): Unit = {
     val n = training_data.length
+
+    var prev_accuracy = 0.0d
+    var eta1 = eta
+
     epochs.range.map { j =>
 
       val start = System.currentTimeMillis()
@@ -300,10 +305,18 @@ ${formatted_weights.mkString(System.lineSeparator())}"""
         }
       }
 
+      val training_cost = total_cost(training_data)
+      val test_cost = test_data.map { x => total_cost(x, Some(configurator.regularization.lambda / training_data.length * x.length)) }.getOrElse(-1.0d)
+      println(s"""training_cost: ${training_cost}, test_cost: ${test_cost}""")
+
       test_data match {
         case Some(test_data) if j % 5 == 0 =>
           val end = System.currentTimeMillis()
-          println(s"""Epoch ${j}: ${end - start}ms ${evaluate(test_data)} / ${test_data.length}""")
+          val corrected = evaluate(test_data)
+          val accuracy = 1.0d * corrected / test_data.length
+          if (accuracy <= prev_accuracy) eta1 = eta / eta_defactor
+          prev_accuracy = accuracy
+          println(s"""Epoch ${j}: ${end - start}ms ${corrected} / ${test_data.length}""")
         case _ =>
           val end = System.currentTimeMillis()
           println(s"""Epoch ${j}: ${end - start}ms completed""")
